@@ -49,10 +49,16 @@ class Roac extends StatelessWidget {
   }
 }
 
+/// How a question is put — named so a test may stand in for the real CLI, in
+/// the same shape as the shell that counsel.dart stands in for.
+typedef Asking = Stream<Counsel> Function(String question, {String? resuming});
+
 /// Where the sprite sits: it walks the window across the desktop, carries the
 /// drag and the pin, and keeps the window's transparent margin click-through.
 class Perch extends StatefulWidget {
-  const Perch({super.key});
+  const Perch({this.asking = askCounsel, super.key});
+
+  final Asking asking;
 
   @override
   State<Perch> createState() => _PerchState();
@@ -98,9 +104,13 @@ class _PerchState extends State<Perch> with WindowListener {
   /// read that began before the change cannot apply its stale reckoning after.
   int _arrangement = 0;
 
-  /// Bumped whenever a question is asked or abandoned, so a slow answer cannot
-  /// speak over the one the user is actually waiting on.
-  int _asking = 0;
+  /// What Roäc is presently being told, if anything. Letting go of it kills
+  /// the CLI, so an abandoned question stops costing the moment it is dropped.
+  StreamSubscription<Counsel>? _listening;
+
+  /// The conversation the last answer belonged to, so a follow-up carries on
+  /// from it rather than beginning again. Forgotten when the bubble shuts.
+  String? _conversation;
 
   /// Where the sprite is truly drawn: it always keeps the window's bottom-left
   /// resting square, which at rest is the whole window and while the bubble is
@@ -126,6 +136,7 @@ class _PerchState extends State<Perch> with WindowListener {
     _cursorWatch?.cancel();
     _strideWatch?.cancel();
     _spell?.cancel();
+    unawaited(_listening?.cancel());
     windowManager.removeListener(this);
     super.dispose();
   }
@@ -287,7 +298,11 @@ class _PerchState extends State<Perch> with WindowListener {
   }
 
   Future<void> _closeBubble() async {
-    _asking++;
+    // Let go without waiting: killing the CLI is not something the click that
+    // shut the bubble should be held up by.
+    unawaited(_listening?.cancel());
+    _listening = null;
+    _conversation = null;
     setState(() {
       _speaking = false;
       _waiting = false;
@@ -321,21 +336,26 @@ class _PerchState extends State<Perch> with WindowListener {
     await windowManager.setBounds(whole);
   }
 
-  /// Puts the question to the counsel and shows whatever comes back — an
-  /// answer or the plain reason there is none.
-  Future<void> _ask(String question) async {
-    final mine = ++_asking;
+  /// Puts the question to the counsel and shows the answer as it arrives.
+  ///
+  /// A question already in flight is let go first, which kills the CLI behind
+  /// it: whatever it was going to say, nobody is waiting for it now.
+  void _ask(String question) {
+    unawaited(_listening?.cancel());
     setState(() {
       _waiting = true;
       _counsel = null;
     });
-    final counsel = await askCounsel(question);
-    // The user has since closed the bubble or asked something else; this
-    // answer is no longer the one they are waiting on.
-    if (!mounted || mine != _asking) return;
+    _listening = widget.asking(question, resuming: _conversation).listen(_heard);
+  }
+
+  /// Takes down what Roäc has said so far, and the conversation it belongs to.
+  void _heard(Counsel counsel) {
+    if (!mounted) return;
     setState(() {
       _waiting = false;
       _counsel = counsel;
+      if (counsel is Answer) _conversation = counsel.session ?? _conversation;
     });
   }
 
@@ -365,7 +385,7 @@ class _PerchState extends State<Perch> with WindowListener {
             child: Bubble(
               counsel: _counsel,
               waiting: _waiting,
-              onAsk: (question) => unawaited(_ask(question)),
+              onAsk: _ask,
             ),
           ),
           SizedBox(

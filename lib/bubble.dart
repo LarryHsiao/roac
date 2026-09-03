@@ -1,6 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'counsel.dart';
+
+/// How a link is followed — named so a test may stand in for the browser, in
+/// the same shape as the shell and the counsel this app already stands in for.
+typedef Opening = Future<bool> Function(Uri link);
 
 const Color _fill = Color(0xFF2E3440);
 const Color _edge = Color(0xFF88C0D0);
@@ -18,6 +27,7 @@ class Bubble extends StatelessWidget {
     required this.counsel,
     required this.waiting,
     required this.onAsk,
+    this.opening = launchUrl,
     super.key,
   });
 
@@ -28,6 +38,9 @@ class Bubble extends StatelessWidget {
   final bool waiting;
 
   final ValueChanged<String> onAsk;
+
+  /// What follows a link the reader taps.
+  final Opening opening;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +55,13 @@ class Bubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Expanded(child: _Said(counsel: counsel, waiting: waiting)),
+          Expanded(
+            child: _Said(
+              counsel: counsel,
+              waiting: waiting,
+              opening: opening,
+            ),
+          ),
           const SizedBox(height: _padding),
           _Asking(onAsk: onAsk),
         ],
@@ -57,10 +76,15 @@ class Bubble extends StatelessWidget {
 /// carries exact values — a URL, a path, an identifier — that mean nothing
 /// once truncated.
 class _Said extends StatelessWidget {
-  const _Said({required this.counsel, required this.waiting});
+  const _Said({
+    required this.counsel,
+    required this.waiting,
+    required this.opening,
+  });
 
   final Counsel? counsel;
   final bool waiting;
+  final Opening opening;
 
   @override
   Widget build(BuildContext context) {
@@ -82,15 +106,100 @@ class _Said extends StatelessWidget {
           'Ask me what you have written down.',
           style: TextStyle(color: _faint),
         ),
-      Answer(:final words) => _Scroll(words: words, colour: _ink),
-      Trouble(:final reason) => _Scroll(words: reason, colour: _alarm),
+      Answer(:final words) => _Rendered(words: words, opening: opening),
+      Trouble(:final reason) => _Plain(words: reason, colour: _alarm),
     };
   }
 }
 
-/// Words given room to run on rather than being cut short.
-class _Scroll extends StatelessWidget {
-  const _Scroll({required this.words, required this.colour});
+/// An answer, drawn as the markdown the CLI writes rather than its source.
+///
+/// It arrives a word at a time, so it is rendered half-written — an unclosed
+/// emphasis reads as its own characters until its closing pair arrives, which
+/// is a moment's flicker rather than a broken page.
+///
+/// A link hides the address beneath its label, and an address is an exact
+/// value that must stay reachable: tapping one opens it, and where it cannot
+/// be opened the address goes to the clipboard rather than nowhere at all.
+///
+/// The view follows the words down as they arrive, so an answer still being
+/// written does not appear to stop after its first three lines — unless the
+/// reader has scrolled up, in which case they are reading, and are left be.
+class _Rendered extends StatefulWidget {
+  const _Rendered({required this.words, required this.opening});
+
+  final String words;
+  final Opening opening;
+
+  @override
+  State<_Rendered> createState() => _RenderedState();
+}
+
+class _RenderedState extends State<_Rendered> {
+  /// How near the end the view must be for the words to carry it along.
+  static const _following = 40.0;
+
+  final _view = ScrollController();
+
+  @override
+  void didUpdateWidget(_Rendered old) {
+    super.didUpdateWidget(old);
+    if (old.words.length >= widget.words.length) return;
+    // Asked before the arriving words are laid out, so this still describes
+    // where the reader stood when they arrived: at the end, or up in the text.
+    if (_view.hasClients &&
+        _view.position.maxScrollExtent - _view.offset > _following) {
+      return;
+    }
+    _follow();
+  }
+
+  @override
+  void dispose() {
+    _view.dispose();
+    super.dispose();
+  }
+
+  /// Carried out after the frame, because the words that arrived have not been
+  /// laid out yet and the end of the view is not where it is about to be.
+  void _follow() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_view.hasClients) return;
+      _view.jumpTo(_view.position.maxScrollExtent);
+    });
+  }
+
+  /// Opens [href], and keeps it reachable by other means if it will not open.
+  Future<void> _open(String? href) async {
+    if (href == null) return;
+    final link = Uri.tryParse(href);
+    if (link != null && await widget.opening(link)) return;
+    await Clipboard.setData(ClipboardData(text: href));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Markdown(
+      controller: _view,
+      data: widget.words,
+      selectable: true,
+      padding: EdgeInsets.zero,
+      onTapLink: (_, href, _) => unawaited(_open(href)),
+      styleSheet: MarkdownStyleSheet(
+        p: const TextStyle(color: _ink, height: 1.4),
+        listBullet: const TextStyle(color: _ink, height: 1.4),
+        a: const TextStyle(color: _edge, decoration: TextDecoration.underline),
+        code: const TextStyle(color: _edge, fontFamily: 'monospace'),
+        codeblockDecoration: const BoxDecoration(color: Color(0xFF3B4252)),
+        blockquoteDecoration: const BoxDecoration(color: Color(0xFF3B4252)),
+      ),
+    );
+  }
+}
+
+/// Words that are not Roäc's own — a complaint from the CLI, shown as it came.
+class _Plain extends StatelessWidget {
+  const _Plain({required this.words, required this.colour});
 
   final String words;
   final Color colour;

@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
+import 'package:roac/counsel.dart';
 import 'package:roac/main.dart';
 import 'package:roac/roaming.dart';
 import 'package:roac/sprite.dart';
@@ -11,6 +14,10 @@ import 'package:roac/sprite.dart';
 class _Desktop {
   /// Where the window stands, kept honest across the calls that move it.
   Rect bounds = const Rect.fromLTWH(400, 300, restingSize, restingSize);
+
+  /// The desktop the tests may reach into, so a test can read what the window
+  /// was told to do.
+  static late _Desktop standing;
 
   /// Far from the sprite, so the window hands its clicks on by default.
   Offset cursor = const Offset(2000, 2000);
@@ -54,7 +61,7 @@ class _Desktop {
           return null;
       }
     });
-    _answer('screen_retriever', (call) async {
+    _answer('dev.leanflutter.plugins/screen_retriever', (call) async {
       return switch (call.method) {
         'getAllDisplays' => {
             'displays': [_display],
@@ -72,7 +79,7 @@ class _Desktop {
 }
 
 void main() {
-  setUp(() => _Desktop().stand());
+  setUp(() => _Desktop.standing = _Desktop()..stand());
 
   /// Lets the frames the perch schedules come through. The sprite's animation
   /// never stops, so `pumpAndSettle` would wait for a rest that never comes.
@@ -127,5 +134,105 @@ void main() {
     }
 
     expect(walked ? Gait.walking : gaitIn(tester), expected);
+  });
+
+  testWidgets('the bubble takes the window room, and gives it back',
+      (tester) async {
+    const expected = (open: speakingSize, shut: Size(restingSize, restingSize));
+
+    await raise(tester);
+    await tester.tap(find.byType(Sprite));
+    await settle(tester);
+    final open = _Desktop.standing.bounds.size;
+    await tester.tap(find.byType(Sprite));
+    await settle(tester);
+    final actual = (open: open, shut: _Desktop.standing.bounds.size);
+
+    expect(actual, expected);
+  });
+
+  group('what Roäc is told', () {
+    /// A counsel that says what it is given, and remembers how it was asked.
+    ({Asking asking, List<String?> resumed, StreamController<Counsel> saying})
+        counselThat() {
+      final saying = StreamController<Counsel>.broadcast();
+      final resumed = <String?>[];
+      Stream<Counsel> asking(String question, {String? resuming}) {
+        resumed.add(resuming);
+        return saying.stream;
+      }
+
+      return (asking: asking, resumed: resumed, saying: saying);
+    }
+
+    Future<void> raiseAsking(WidgetTester tester, Asking asking) async {
+      await tester.pumpWidget(
+        MaterialApp(home: Scaffold(body: Perch(asking: asking))),
+      );
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+    }
+
+    testWidgets('the words are shown as they arrive, not only at the end',
+        (tester) async {
+      const expected = (early: true, late: true);
+      final counsel = counselThat();
+
+      await raiseAsking(tester, counsel.asking);
+      await tester.enterText(find.byType(TextField), 'a question');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      counsel.saying.add(const Answer('The first'));
+      await settle(tester);
+      final early = find.textContaining('The first').evaluate().isNotEmpty;
+      counsel.saying.add(const Answer('The first and the second'));
+      await settle(tester);
+      final actual = (
+        early: early,
+        late: find.textContaining('and the second').evaluate().isNotEmpty,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('a follow-up carries the conversation the answer named on',
+        (tester) async {
+      const expected = [null, 'a-session'];
+      final counsel = counselThat();
+
+      await raiseAsking(tester, counsel.asking);
+      await tester.enterText(find.byType(TextField), 'first');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      counsel.saying.add(const Answer('said', session: 'a-session'));
+      await settle(tester);
+      await tester.enterText(find.byType(TextField), 'second');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+
+      expect(counsel.resumed, expected);
+    });
+
+    testWidgets('shutting the bubble forgets the conversation', (tester) async {
+      const expected = [null, null];
+      final counsel = counselThat();
+
+      await raiseAsking(tester, counsel.asking);
+      await tester.enterText(find.byType(TextField), 'first');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      counsel.saying.add(const Answer('said', session: 'a-session'));
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.enterText(find.byType(TextField), 'second');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+
+      expect(counsel.resumed, expected);
+    });
   });
 }
