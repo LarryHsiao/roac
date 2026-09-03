@@ -42,8 +42,10 @@ void main() {
     }
 
     Future<void> show(WidgetTester tester, Gait gait) => tester.pumpWidget(
-          MaterialApp(home: Sprite(gait: gait, facing: Facing.right)),
-        );
+      MaterialApp(
+        home: Sprite(gait: gait, facing: Facing.right),
+      ),
+    );
 
     testWidgets('a pinned mascot holds perfectly still', (tester) async {
       const expected = (atFirst: 0.0, later: 0.0);

@@ -41,10 +41,7 @@ class Roac extends StatelessWidget {
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Perch(),
-      ),
+      home: Scaffold(backgroundColor: Colors.transparent, body: Perch()),
     );
   }
 }
@@ -116,13 +113,13 @@ class _PerchState extends State<Perch> with WindowListener {
   /// resting square, which at rest is the whole window and while the bubble is
   /// open is the corner beneath it.
   Rect get _spriteOnScreen => spriteBoundsWithin(
-        Rect.fromLTWH(
-          _stance.left,
-          _top + _span.height - restingSize,
-          restingSize,
-          restingSize,
-        ),
-      );
+    Rect.fromLTWH(
+      _stance.left,
+      _top + _span.height - restingSize,
+      restingSize,
+      restingSize,
+    ),
+  );
 
   @override
   void initState() {
@@ -160,42 +157,43 @@ class _PerchState extends State<Perch> with WindowListener {
   }
 
   Future<void> _readWindowPlacement() => _placement.run(() async {
-        final mine = _arrangement;
-        final bounds = await windowManager.getBounds();
-        final displays = await ScreenRetriever.instance.getAllDisplays();
-        // The window was deliberately resized while this read was in flight;
-        // that change knows better than these bounds do.
-        if (!mounted || mine != _arrangement) return;
-        final range = roamingRangeOn(displays, bounds, _span) ?? _range;
-        // A walking mascot is the authority on its own left edge: the bounds
-        // just read are a step or two behind it already.
-        final standing = _gait == Gait.walking
-            ? Rect.fromLTWH(_stance.left, bounds.top, bounds.width, bounds.height)
-            : bounds;
-        final whole = wholeWithin(standing, range, _span);
-        setState(() {
-          _top = whole.top;
-          _span = whole.size;
-          _stance = Stance(left: whole.left, facing: _stance.facing);
-        });
-        _range = range;
-        if (whole != standing) await windowManager.setBounds(whole);
-      });
+    final mine = _arrangement;
+    final bounds = await windowManager.getBounds();
+    final displays = await ScreenRetriever.instance.getAllDisplays();
+    // The window was deliberately resized while this read was in flight;
+    // that change knows better than these bounds do.
+    if (!mounted || mine != _arrangement) return;
+    final range = roamingRangeOn(displays, bounds, _span) ?? _range;
+    // A walking mascot is the authority on its own left edge: the bounds
+    // just read are a step or two behind it already.
+    final standing = _gait == Gait.walking
+        ? Rect.fromLTWH(_stance.left, bounds.top, bounds.width, bounds.height)
+        : bounds;
+    final whole = wholeWithin(standing, range, _span);
+    setState(() {
+      _top = whole.top;
+      _span = whole.size;
+      _stance = Stance(left: whole.left, facing: _stance.facing);
+    });
+    _range = range;
+    if (whole != standing) await windowManager.setBounds(whole);
+  });
 
   /// One step of the walk. It is the window that moves, not the widget.
   Future<void> _stride() => _step.run(() async {
-        if (_gait != Gait.walking || _speaking) return;
-        final distance = _walkSpeed *
-            _strideInterval.inMilliseconds /
-            Duration.millisecondsPerSecond;
-        final next = _stance.stride(distance, _range);
-        if (next == _stance) return;
-        await windowManager.setPosition(Offset(next.left, _top));
-        // A hand may have grabbed the mascot while the window was moving, and
-        // that hand has the last word on where it stands.
-        if (!mounted || _gait != Gait.walking) return;
-        setState(() => _stance = next);
-      });
+    if (_gait != Gait.walking || _speaking) return;
+    final distance =
+        _walkSpeed *
+        _strideInterval.inMilliseconds /
+        Duration.millisecondsPerSecond;
+    final next = _stance.stride(distance, _range);
+    if (next == _stance) return;
+    await windowManager.setPosition(Offset(next.left, _top));
+    // A hand may have grabbed the mascot while the window was moving, and
+    // that hand has the last word on where it stands.
+    if (!mounted || _gait != Gait.walking) return;
+    setState(() => _stance = next);
+  });
 
   /// Arms the next spell, putting out any that still stands.
   ///
@@ -263,13 +261,13 @@ class _PerchState extends State<Perch> with WindowListener {
   /// whatever lies beneath the window while it is not. An open bubble takes
   /// the whole window, so that the field and the button beneath it answer.
   Future<void> _followCursor() => _cursor.run(() async {
-        final passThrough = _speaking ? false : await _cursorIsAway();
-        if (passThrough == _clicksPassThrough) return;
-        // Recorded only once the window has actually taken the change, so a
-        // failed call leaves the two in step and the next tick tries again.
-        await windowManager.setIgnoreMouseEvents(passThrough);
-        _clicksPassThrough = passThrough;
-      });
+    final passThrough = _speaking ? false : await _cursorIsAway();
+    if (passThrough == _clicksPassThrough) return;
+    // Recorded only once the window has actually taken the change, so a
+    // failed call leaves the two in step and the next tick tries again.
+    await windowManager.setIgnoreMouseEvents(passThrough);
+    _clicksPassThrough = passThrough;
+  });
 
   /// Whether the cursor lies off the sprite, so the click belongs to whatever
   /// stands beneath the window.
@@ -280,9 +278,8 @@ class _PerchState extends State<Perch> with WindowListener {
 
   /// Opens the bubble, or shuts it. A click that arrives while the window is
   /// still changing size is let go rather than queued.
-  void _tapped() => unawaited(
-        _room.run(() => _speaking ? _closeBubble() : _openBubble()),
-      );
+  void _tapped() =>
+      unawaited(_room.run(() => _speaking ? _closeBubble() : _openBubble()));
 
   /// The mascot falls still and stops roaming the moment it is asked to
   /// speak, before the window is given the room to hold the bubble.
@@ -346,7 +343,9 @@ class _PerchState extends State<Perch> with WindowListener {
       _waiting = true;
       _counsel = null;
     });
-    _listening = widget.asking(question, resuming: _conversation).listen(_heard);
+    _listening = widget
+        .asking(question, resuming: _conversation)
+        .listen(_heard);
   }
 
   /// Takes down what Roäc has said so far, and the conversation it belongs to.
@@ -382,17 +381,9 @@ class _PerchState extends State<Perch> with WindowListener {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Bubble(
-              counsel: _counsel,
-              waiting: _waiting,
-              onAsk: _ask,
-            ),
+            child: Bubble(counsel: _counsel, waiting: _waiting, onAsk: _ask),
           ),
-          SizedBox(
-            width: restingSize,
-            height: restingSize,
-            child: mascot,
-          ),
+          SizedBox(width: restingSize, height: restingSize, child: mascot),
         ],
       ),
     );

@@ -10,19 +10,18 @@ void main() {
     Counsel? counsel,
     bool waiting = false,
     Opening opening = _nowhere,
-  }) =>
-      tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Bubble(
-              counsel: counsel,
-              waiting: waiting,
-              onAsk: (_) {},
-              opening: opening,
-            ),
-          ),
+  }) => tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: Bubble(
+          counsel: counsel,
+          waiting: waiting,
+          onAsk: (_) {},
+          opening: opening,
         ),
-      );
+      ),
+    ),
+  );
 
   bool shown(String words) => find.text(words).evaluate().isNotEmpty;
 
@@ -35,8 +34,9 @@ void main() {
     expect(actual, expected);
   });
 
-  testWidgets('while thinking it says so, and holds back the last counsel',
-      (tester) async {
+  testWidgets('while thinking it says so, and holds back the last counsel', (
+    tester,
+  ) async {
     const expected = (thinking: true, stillShowing: false);
 
     await show(
@@ -52,8 +52,9 @@ void main() {
     expect(actual, expected);
   });
 
-  testWidgets('a long answer is given room to scroll rather than being cut',
-      (tester) async {
+  testWidgets('a long answer is given room to scroll rather than being cut', (
+    tester,
+  ) async {
     const expected = true;
     final words = List.filled(60, 'a line of the answer').join('\n');
 
@@ -69,8 +70,9 @@ void main() {
     expect(actual, expected);
   });
 
-  testWidgets('an answer is drawn as markdown, not as its own source',
-      (tester) async {
+  testWidgets('an answer is drawn as markdown, not as its own source', (
+    tester,
+  ) async {
     const expected = (rendered: true, raw: false);
     const source = '**bold** and [a link](https://example.test)';
 
@@ -83,8 +85,9 @@ void main() {
     expect(actual, expected);
   });
 
-  testWidgets('a trouble is shown plainly rather than swallowed',
-      (tester) async {
+  testWidgets('a trouble is shown plainly rather than swallowed', (
+    tester,
+  ) async {
     const complaint = 'claude: command not found';
     const expected = true;
 
@@ -94,8 +97,9 @@ void main() {
     expect(actual, expected);
   });
 
-  testWidgets('a tapped link is opened, not left to the reader to retype',
-      (tester) async {
+  testWidgets('a tapped link is opened, not left to the reader to retype', (
+    tester,
+  ) async {
     const expected = 'https://example.test/policy.html';
     Uri? followed;
 
@@ -110,10 +114,10 @@ void main() {
     // Tapped through the handler the rendered answer installs: the gesture
     // that reaches it belongs to the markdown package, not to this app.
     tester.widget<Markdown>(find.byType(Markdown)).onTapLink!(
-          'the policy',
-          expected,
-          '',
-        );
+      'the policy',
+      expected,
+      '',
+    );
     await tester.pump();
 
     expect(followed.toString(), expected);

@@ -29,12 +29,14 @@ class Latch {
     } catch (error, stack) {
       if (_failing) return;
       _failing = true;
-      FlutterError.reportError(FlutterErrorDetails(
-        exception: error,
-        stack: stack,
-        library: 'roac',
-        context: ErrorDescription(task),
-      ));
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: error,
+          stack: stack,
+          library: 'roac',
+          context: ErrorDescription(task),
+        ),
+      );
     } finally {
       _held = false;
     }

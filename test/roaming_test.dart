@@ -12,8 +12,10 @@ void main() {
     test('carries the mascot on where the range holds it', () {
       const expected = Stance(left: 510, facing: Facing.right);
 
-      final actual =
-          const Stance(left: 500, facing: Facing.right).stride(10, range);
+      final actual = const Stance(
+        left: 500,
+        facing: Facing.right,
+      ).stride(10, range);
 
       expect(actual, expected);
     });
@@ -21,8 +23,10 @@ void main() {
     test('turns the mascot about at the far edge', () {
       const expected = Stance(left: 1000, facing: Facing.left);
 
-      final actual =
-          const Stance(left: 995, facing: Facing.right).stride(10, range);
+      final actual = const Stance(
+        left: 995,
+        facing: Facing.right,
+      ).stride(10, range);
 
       expect(actual, expected);
     });
@@ -30,8 +34,10 @@ void main() {
     test('turns the mascot about at the near edge', () {
       const expected = Stance(left: 0, facing: Facing.right);
 
-      final actual =
-          const Stance(left: 5, facing: Facing.left).stride(10, range);
+      final actual = const Stance(
+        left: 5,
+        facing: Facing.left,
+      ).stride(10, range);
 
       expect(actual, expected);
     });
@@ -60,7 +66,11 @@ void main() {
         floor: 900.0 - restingSize,
       );
 
-      final actual = roamingRangeOn(const [primary, second], window, restingSquare);
+      final actual = roamingRangeOn(
+        const [primary, second],
+        window,
+        restingSquare,
+      );
 
       expect(actual, expected);
     });
@@ -74,7 +84,11 @@ void main() {
         floor: 1055.0 - restingSize,
       );
 
-      final actual = roamingRangeOn(const [primary, second], window, restingSquare);
+      final actual = roamingRangeOn(
+        const [primary, second],
+        window,
+        restingSquare,
+      );
 
       expect(actual, expected);
     });
@@ -83,7 +97,11 @@ void main() {
       const squashed = Rect.fromLTWH(400, 927, restingSize, 128);
       const expected = 1055.0 - restingSize;
 
-      final actual = roamingRangeOn(const [primary, second], squashed, restingSquare)?.floor;
+      final actual = roamingRangeOn(
+        const [primary, second],
+        squashed,
+        restingSquare,
+      )?.floor;
 
       expect(actual, expected);
     });

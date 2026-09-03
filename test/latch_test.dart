@@ -38,22 +38,24 @@ void main() {
     expect(actual, expected);
   });
 
-  test('a latch reports a lasting failure once, and anew once it has mended',
-      () async {
-    const expected = (whileFailing: 1, afterMending: 2);
-    final latch = Latch('a task');
-    final reports = <FlutterErrorDetails>[];
-    final previous = FlutterError.onError;
-    FlutterError.onError = reports.add;
-    addTearDown(() => FlutterError.onError = previous);
+  test(
+    'a latch reports a lasting failure once, and anew once it has mended',
+    () async {
+      const expected = (whileFailing: 1, afterMending: 2);
+      final latch = Latch('a task');
+      final reports = <FlutterErrorDetails>[];
+      final previous = FlutterError.onError;
+      FlutterError.onError = reports.add;
+      addTearDown(() => FlutterError.onError = previous);
 
-    await latch.run(() async => throw StateError('the platform said no'));
-    await latch.run(() async => throw StateError('and said no again'));
-    final whileFailing = reports.length;
-    await latch.run(() async {});
-    await latch.run(() async => throw StateError('and once more'));
+      await latch.run(() async => throw StateError('the platform said no'));
+      await latch.run(() async => throw StateError('and said no again'));
+      final whileFailing = reports.length;
+      await latch.run(() async {});
+      await latch.run(() async => throw StateError('and once more'));
 
-    final actual = (whileFailing: whileFailing, afterMending: reports.length);
-    expect(actual, expected);
-  });
+      final actual = (whileFailing: whileFailing, afterMending: reports.length);
+      expect(actual, expected);
+    },
+  );
 }

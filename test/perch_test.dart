@@ -64,8 +64,8 @@ class _Desktop {
     _answer('dev.leanflutter.plugins/screen_retriever', (call) async {
       return switch (call.method) {
         'getAllDisplays' => {
-            'displays': [_display],
-          },
+          'displays': [_display],
+        },
         'getCursorScreenPoint' => {'dx': cursor.dx, 'dy': cursor.dy},
         _ => null,
       };
@@ -92,13 +92,12 @@ void main() {
 
   /// Raises the perch and lets its first placement read settle.
   Future<void> raise(WidgetTester tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(home: Scaffold(body: Perch())),
-    );
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: Perch())));
     await settle(tester);
   }
 
-  Gait gaitIn(WidgetTester tester) => tester.widget<Sprite>(find.byType(Sprite)).gait;
+  Gait gaitIn(WidgetTester tester) =>
+      tester.widget<Sprite>(find.byType(Sprite)).gait;
 
   testWidgets('a click opens the bubble and stills the mascot', (tester) async {
     const expected = (bubble: true, field: true, roaming: false);
@@ -115,8 +114,9 @@ void main() {
     expect(actual, expected);
   });
 
-  testWidgets('the bubble keeps the mascot still however it is handled',
-      (tester) async {
+  testWidgets('the bubble keeps the mascot still however it is handled', (
+    tester,
+  ) async {
     const expected = Gait.idle;
 
     await raise(tester);
@@ -136,8 +136,9 @@ void main() {
     expect(walked ? Gait.walking : gaitIn(tester), expected);
   });
 
-  testWidgets('the bubble takes the window room, and gives it back',
-      (tester) async {
+  testWidgets('the bubble takes the window room, and gives it back', (
+    tester,
+  ) async {
     const expected = (open: speakingSize, shut: Size(restingSize, restingSize));
 
     await raise(tester);
@@ -154,7 +155,7 @@ void main() {
   group('what Roäc is told', () {
     /// A counsel that says what it is given, and remembers how it was asked.
     ({Asking asking, List<String?> resumed, StreamController<Counsel> saying})
-        counselThat() {
+    counselThat() {
       final saying = StreamController<Counsel>.broadcast();
       final resumed = <String?>[];
       Stream<Counsel> asking(String question, {String? resuming}) {
@@ -167,15 +168,18 @@ void main() {
 
     Future<void> raiseAsking(WidgetTester tester, Asking asking) async {
       await tester.pumpWidget(
-        MaterialApp(home: Scaffold(body: Perch(asking: asking))),
+        MaterialApp(
+          home: Scaffold(body: Perch(asking: asking)),
+        ),
       );
       await settle(tester);
       await tester.tap(find.byType(Sprite));
       await settle(tester);
     }
 
-    testWidgets('the words are shown as they arrive, not only at the end',
-        (tester) async {
+    testWidgets('the words are shown as they arrive, not only at the end', (
+      tester,
+    ) async {
       const expected = (early: true, late: true);
       final counsel = counselThat();
 
@@ -196,8 +200,9 @@ void main() {
       expect(actual, expected);
     });
 
-    testWidgets('a follow-up carries the conversation the answer named on',
-        (tester) async {
+    testWidgets('a follow-up carries the conversation the answer named on', (
+      tester,
+    ) async {
       const expected = [null, 'a-session'];
       final counsel = counselThat();
 

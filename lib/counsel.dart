@@ -25,14 +25,16 @@ const _streaming =
 
 /// A question put afresh, and one put to a conversation already begun.
 const _fresh = 'exec claude -p "\$1" --add-dir "\$2" $_streaming';
-const _again = 'exec claude -p "\$1" --add-dir "\$2" --resume "\$3" $_streaming';
+const _again =
+    'exec claude -p "\$1" --add-dir "\$2" --resume "\$3" $_streaming';
 
 /// How a command is started — named so a test may stand in for the real shell.
-typedef Shell = Future<Process> Function(
-  String executable,
-  List<String> arguments, {
-  String? workingDirectory,
-});
+typedef Shell =
+    Future<Process> Function(
+      String executable,
+      List<String> arguments, {
+      String? workingDirectory,
+    });
 
 /// What Roäc came back with.
 @immutable
@@ -122,13 +124,13 @@ void _say(StreamController<Counsel> told, Counsel counsel) {
 /// The shell's argument list. `$0` is the name the shell wears; the rest are
 /// the question, the knowledge base, and the conversation being carried on.
 List<String> _command(String question, String? resuming) => [
-      '-lc',
-      resuming == null ? _fresh : _again,
-      'roac',
-      question,
-      knowledgeBase,
-      ?resuming,
-    ];
+  '-lc',
+  resuming == null ? _fresh : _again,
+  'roac',
+  question,
+  knowledgeBase,
+  ?resuming,
+];
 
 /// Reads what the CLI says, and says it on as it comes.
 ///
@@ -171,8 +173,7 @@ Future<String> _wentWrong(Process claude, Future<String> complaining) async {
   if (complaint.isNotEmpty) return complaint;
   // Bounded like every other wait here: a process whose output has ended but
   // which has not yet been reaped must not hold the answer open for ever.
-  final ending = await claude.exitCode
-      .timeout(_reaping, onTimeout: () => -1);
+  final ending = await claude.exitCode.timeout(_reaping, onTimeout: () => -1);
   return 'Roäc found no counsel (the CLI exited $ending).';
 }
 

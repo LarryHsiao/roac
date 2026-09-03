@@ -11,10 +11,10 @@ import 'roaming.dart';
 /// for, so a window the desktop has resized still hands over the pointer where
 /// the sprite is actually drawn.
 Rect spriteBoundsWithin(Rect window) => Rect.fromCenter(
-      center: window.center,
-      width: Sprite.size,
-      height: Sprite.size,
-    );
+  center: window.center,
+  width: Sprite.size,
+  height: Sprite.size,
+);
 
 /// The placeholder mascot — a plain rounded square with no face and no
 /// character. Its motion is drawn rather than animated from art; real sprite
@@ -70,8 +70,9 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
       _beat.value = 0;
       return;
     }
-    _beat.duration =
-        widget.gait == Gait.walking ? _stridePeriod : _breathPeriod;
+    _beat.duration = widget.gait == Gait.walking
+        ? _stridePeriod
+        : _breathPeriod;
     _beat.repeat();
   }
 
@@ -84,7 +85,9 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
           final beat = math.sin(_beat.value * 2 * math.pi);
           final walking = widget.gait == Gait.walking;
           final rise = walking ? -beat.abs() * _hopRise : beat * _breathRise;
-          final lean = walking ? widget.facing.stride * beat.abs() * _lean : 0.0;
+          final lean = walking
+              ? widget.facing.stride * beat.abs() * _lean
+              : 0.0;
           return Transform.translate(
             offset: Offset(0, rise),
             child: Transform.rotate(angle: lean, child: child),

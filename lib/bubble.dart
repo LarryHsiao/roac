@@ -56,11 +56,7 @@ class Bubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: _Said(
-              counsel: counsel,
-              waiting: waiting,
-              opening: opening,
-            ),
+            child: _Said(counsel: counsel, waiting: waiting, opening: opening),
           ),
           const SizedBox(height: _padding),
           _Asking(onAsk: onAsk),
@@ -103,9 +99,9 @@ class _Said extends StatelessWidget {
     }
     return switch (counsel) {
       null => const Text(
-          'Ask me what you have written down.',
-          style: TextStyle(color: _faint),
-        ),
+        'Ask me what you have written down.',
+        style: TextStyle(color: _faint),
+      ),
       Answer(:final words) => _Rendered(words: words, opening: opening),
       Trouble(:final reason) => _Plain(words: reason, colour: _alarm),
     };
