@@ -2,8 +2,7 @@
 
 A desktop mascot for macOS that answers questions about your own notes.
 
-A small, faceless sprite floats above your other windows and wanders across the
-screen. Click it and a speech bubble opens; type a question and it answers by
+A small raven floats above your other windows and wanders across the screen. Click it and a speech bubble opens; type a question and it answers by
 running the Claude Code CLI over a local markdown knowledge base. Nothing is
 uploaded — the CLI reads the files on this machine, under your own credentials.
 
@@ -74,7 +73,7 @@ to accessory — that part lives in the package, not in this tree.
 |---|---|
 | `lib/main.dart` | `Perch` — the state machine. Walks the window across the desktop, carries the drag, the pin and the bubble, and keeps the transparent margin click-through |
 | `lib/roaming.dart` | `Gait`, `Facing`, `Stance`, and the pure geometry: where the mascot may stand on its display, and how a window is put back whole when the desktop has squashed it |
-| `lib/sprite.dart` | The placeholder mascot and its three looks — breathing at rest, hopping and leaning while walking, frozen when pinned. All drawn, no art assets |
+| `lib/sprite.dart` | The raven and its three looks — breathing at rest, hopping and leaning while walking, still with its eye shut when pinned. All drawn, no art assets |
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |
 | `lib/latch.dart` | A re-entrancy latch. Drops overlapping runs of one task and reports a lasting failure once, not on every tick |
@@ -133,15 +132,18 @@ A status-bar item, launch at login, and Windows support.
 One rough edge remains: **the first click on an inactive Roäc is swallowed** by
 macOS activating the app, which a status-bar item would sidestep.
 
-The sprite is a plain rounded square with no face, on purpose — a character has
-not been chosen. Its motion is drawn rather than played from frames, so real
-sprite art replaces `lib/sprite.dart` and nothing else.
+The raven is drawn in code — shapes on a unit square, mirrored when it turns —
+rather than played from frames. There are no image assets, so nothing can fall
+out of step with the code. A sprite sheet, if one ever comes, replaces
+`lib/sprite.dart` and nothing else.
 
 ## Licence
 
 The code is **MIT** — see [LICENSE](LICENSE). Take it, change it, sell it.
 
-**Sprite art is not covered by that grant.** The placeholder square in
-`lib/sprite.dart` is part of the code and MIT like the rest, but any character
-art distributed for Roäc carries its own licence and its own terms. Art is a
-separate work; this licence says nothing about it either way.
+**The raven in `lib/sprite.dart` is code, and MIT like the rest** — it is drawn
+in Dart, not shipped as an image, so the grant above covers it entirely.
+
+Any character art distributed *for* Roäc — a sprite sheet, an image pack — is a
+separate work and carries its own licence and its own terms. This grant says
+nothing about such art either way, and none is distributed here.

@@ -78,4 +78,50 @@ void main() {
       expect(actual, closeTo(expected, 0.001));
     });
   });
+
+  group('the raven is redrawn only when it needs to be', () {
+    testWidgets('a change of gait or of facing calls for a fresh painting', (
+      tester,
+    ) async {
+      const expected = (gait: true, facing: true, neither: false);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Sprite(gait: Gait.idle, facing: Facing.right),
+        ),
+      );
+      // Narrowed to the raven's own painting rather than taken by position:
+      // a Material ancestor added here later would otherwise slip its own
+      // CustomPaint in, and this would assert about the wrong thing quietly.
+      CustomPainter drawn() => tester
+          .widget<CustomPaint>(
+            find.descendant(
+              of: find.byType(Sprite),
+              matching: find.byType(CustomPaint),
+            ),
+          )
+          .painter!;
+      final painting = drawn();
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Sprite(gait: Gait.walking, facing: Facing.right),
+        ),
+      );
+      final walking = drawn();
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Sprite(gait: Gait.idle, facing: Facing.left),
+        ),
+      );
+      final turned = drawn();
+
+      final actual = (
+        gait: walking.shouldRepaint(painting),
+        facing: turned.shouldRepaint(painting),
+        neither: painting.shouldRepaint(painting),
+      );
+
+      expect(actual, expected);
+    });
+  });
 }
