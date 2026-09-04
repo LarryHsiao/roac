@@ -467,6 +467,54 @@ void main() {
       expect(_sameBytes(shipped, drawnNow), expected);
     });
   });
+
+  group('the pack the world offers', () {
+    late Directory kept;
+
+    setUp(() async {
+      kept = await Directory.systemTemp.createTemp('roac-packs');
+    });
+
+    tearDown(() async {
+      if (kept.existsSync()) await kept.delete(recursive: true);
+    });
+
+    test('is worn when one is there', () async {
+      const expected = 'Roäc';
+      await File(
+        '${kept.path}/roac-raven.zip',
+      ).writeAsBytes(await File('packs/roac-raven.zip').readAsBytes());
+
+      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+
+      expect((worn! as Character).name, expected);
+    });
+
+    test('is nobody when the folder holds none, which is no failure', () async {
+      const Pack? expected = null;
+
+      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+
+      expect(worn, expected);
+    });
+
+    test('is nobody when there is no folder at all', () async {
+      const Pack? expected = null;
+      await kept.delete(recursive: true);
+
+      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+
+      expect(worn, expected);
+    });
+
+    test('is refused aloud when the one that is there will not read', () async {
+      await File('${kept.path}/broken.zip').writeAsString('not a pack at all');
+
+      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+
+      expect(worn, isA<Unreadable>());
+    });
+  });
 }
 
 /// The raven as the code draws him at rest, in one frame.

@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'pack.dart';
 import 'roaming.dart';
 
 /// The rectangle the pointer must fall within for the sprite to catch it,
@@ -22,13 +23,26 @@ Rect spriteBoundsWithin(Rect window) => Rect.fromCenter(
 /// and nothing to keep in step with the code. Sprite sheets, when they come,
 /// replace this file and nothing else.
 class Sprite extends StatefulWidget {
-  const Sprite({required this.gait, required this.facing, super.key});
+  const Sprite({
+    required this.gait,
+    required this.facing,
+    this.worn,
+    this.walked = 0,
+    super.key,
+  });
 
   /// Edge length of the drawn sprite, in logical pixels.
   static const double size = 120;
 
   final Gait gait;
   final Facing facing;
+
+  /// The character being worn, if any. None, and Roäc draws himself.
+  final Character? worn;
+
+  /// How much ground has been walked altogether, in logical pixels. A packed
+  /// walk steps by this rather than by the clock, so its feet never skate.
+  final double walked;
 
   @override
   State<Sprite> createState() => _SpriteState();
@@ -50,7 +64,7 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
   @override
   void didUpdateWidget(Sprite old) {
     super.didUpdateWidget(old);
-    if (old.gait != widget.gait) _keepTime();
+    if (old.gait != widget.gait || old.worn != widget.worn) _keepTime();
   }
 
   @override
@@ -66,24 +80,29 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
       _beat.value = 0;
       return;
     }
-    _beat.duration = widget.gait == Gait.walking
-        ? _stridePeriod
-        : _breathPeriod;
+    _beat.duration = _cycleOf(widget.worn?.poses[widget.gait]);
     _beat.repeat();
   }
+
+  Duration _cycleOf(Poses? poses) =>
+      cycleOf(poses, widget.gait, breath: _breathPeriod, stride: _stridePeriod);
 
   @override
   Widget build(BuildContext context) {
     // The drawing owns every part of the motion, rather than a transform above
     // it moving a fixed picture about. A frame of a sprite sheet carries its
-    // whole pose, so the bird that will one day be drawn from frames must be
-    // describable the same way — by a gait, a facing, and where it stands in
-    // its cycle.
+    // whole pose, and so does the drawn bird — which is what lets a pack step
+    // into its place with nothing above either of them to keep in step.
     return Center(
       child: AnimatedBuilder(
         animation: _beat,
-        builder: (context, _) =>
-            _Body(gait: widget.gait, facing: widget.facing, phase: _beat.value),
+        builder: (context, _) => _Body(
+          gait: widget.gait,
+          facing: widget.facing,
+          phase: _beat.value,
+          worn: widget.worn,
+          walked: widget.walked,
+        ),
       ),
     );
   }
@@ -91,19 +110,85 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
 
 /// The mascot's body: Roäc himself, drawn rather than played from frames.
 class _Body extends StatelessWidget {
-  const _Body({required this.gait, required this.facing, required this.phase});
+  const _Body({
+    required this.gait,
+    required this.facing,
+    required this.phase,
+    required this.worn,
+    required this.walked,
+  });
 
   final Gait gait;
   final Facing facing;
   final double phase;
+  final Character? worn;
+  final double walked;
 
   @override
   Widget build(BuildContext context) {
+    final character = worn;
+    final poses = character?.poses[gait];
     return CustomPaint(
       size: const Size.square(Sprite.size),
-      painter: _Raven(gait: gait, facing: facing, phase: phase),
+      painter: poses == null
+          ? _Raven(gait: gait, facing: facing, phase: phase)
+          : _Worn(
+              poses: poses,
+              frame: character!.frame,
+              facing: facing,
+              at: frameAt(poses, phase: phase, walked: walked),
+            ),
     );
   }
+}
+
+/// Which frame of [poses] to show.
+///
+/// A walk counts the ground it has covered, so the legs keep step with the
+/// body however fast it goes. Everything else counts time, and there the
+/// controller's own turning through its cycle is the count already made.
+int frameAt(Poses poses, {required double phase, required double walked}) {
+  final everyPx = poses.everyPx;
+  final step = everyPx == null
+      ? (phase * poses.sequence.length).floor()
+      : (walked / everyPx).floor();
+  return poses.sequence[step % poses.sequence.length];
+}
+
+/// A character worn in Roäc's place: one frame of its strip, laid where the
+/// drawn bird would have stood.
+class _Worn extends CustomPainter {
+  const _Worn({
+    required this.poses,
+    required this.frame,
+    required this.facing,
+    required this.at,
+  });
+
+  final Poses poses;
+  final Size frame;
+  final Facing facing;
+  final int at;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.save();
+    if (facing == Facing.left) {
+      canvas.translate(size.width, 0);
+      canvas.scale(-1, 1);
+    }
+    canvas.drawImageRect(
+      poses.strip,
+      Rect.fromLTWH(frame.width * at, 0, frame.width, frame.height),
+      Offset.zero & size,
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(_Worn old) =>
+      old.at != at || old.facing != facing || old.poses != poses;
 }
 
 /// How far the near leg has swung at [phase] of a stride: forward at a quarter
@@ -121,6 +206,26 @@ double bodyDropAt(double phase) => legSwingAt(phase).abs();
 /// How far the head is thrust forward at [phase] of a stride — the push and
 /// catch-up that is a corvid's whole walk, more than the legs ever are.
 double headThrustAt(double phase) => math.cos(phase * 4 * math.pi);
+
+/// How long one turn of a gait's cycle takes.
+///
+/// A worn character sets its own tempo: the manifest says how long a frame is
+/// held, and there are as many frames as its sequence plays. Only a bird
+/// drawing himself falls back on the periods given here, having no manifest
+/// to be asked. A gait carried by distance rather than time has no cycle in
+/// the clock at all, so it too takes the fallback and is simply left turning.
+Duration cycleOf(
+  Poses? poses,
+  Gait gait, {
+  required Duration breath,
+  required Duration stride,
+}) {
+  final everyMs = poses?.everyMs;
+  if (everyMs != null) {
+    return Duration(milliseconds: everyMs * poses!.sequence.length);
+  }
+  return gait == Gait.walking ? stride : breath;
+}
 
 /// Draws Roäc as he stands at [phase] of his [gait].
 ///

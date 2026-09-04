@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:window_manager/window_manager.dart';
 import 'bubble.dart';
 import 'counsel.dart';
 import 'latch.dart';
+import 'pack.dart';
 import 'roaming.dart';
 import 'sprite.dart';
 
@@ -34,14 +36,20 @@ Future<void> main() async {
   runApp(const Roac());
 }
 
+/// What the running app believes about the world it stands in.
+final _theWorld = Platform.environment;
+
 class Roac extends StatelessWidget {
   const Roac({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: Scaffold(backgroundColor: Colors.transparent, body: Perch()),
+      home: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Perch(environment: _theWorld),
+      ),
     );
   }
 }
@@ -53,9 +61,18 @@ typedef Asking = Stream<Counsel> Function(String question, {String? resuming});
 /// Where the sprite sits: it walks the window across the desktop, carries the
 /// drag and the pin, and keeps the window's transparent margin click-through.
 class Perch extends StatefulWidget {
-  const Perch({this.asking = askCounsel, super.key});
+  const Perch({
+    this.asking = askCounsel,
+    this.environment = const {},
+    super.key,
+  });
 
   final Asking asking;
+
+  /// What the world says about where packs are kept and which to wear. Empty
+  /// by default so a test wears nothing it did not put there itself; the app
+  /// hands it the real environment.
+  final Map<String, String> environment;
 
   @override
   State<Perch> createState() => _PerchState();
@@ -109,6 +126,13 @@ class _PerchState extends State<Perch> with WindowListener {
   /// from it rather than beginning again. Forgotten when the bubble shuts.
   String? _conversation;
 
+  /// The character being worn, if a pack was found and could be read.
+  Character? _worn;
+
+  /// Every pixel of ground walked since Roäc woke. A packed walk steps by
+  /// this rather than by the clock, so the legs keep pace with the body.
+  double _walked = 0;
+
   /// Where the sprite is truly drawn: it always keeps the window's bottom-left
   /// resting square, which at rest is the whole window and while the bubble is
   /// open is the corner beneath it.
@@ -149,11 +173,36 @@ class _PerchState extends State<Perch> with WindowListener {
   /// Reads where the window stands before the first sample, so that no tick
   /// ever tests the cursor or a step against the placeholder bounds.
   Future<void> _comeAlive() async {
+    await _wearAPack();
     await _readWindowPlacement();
     if (!mounted) return;
     _cursorWatch = Timer.periodic(_cursorInterval, (_) => _followCursor());
     _strideWatch = Timer.periodic(_strideInterval, (_) => _stride());
     _armSpell();
+  }
+
+  /// Wears whichever pack the environment asks for, if one can be read.
+  ///
+  /// A pack that is there and will not read is said aloud rather than passed
+  /// over: somebody chose it, and would otherwise be left wondering why they
+  /// are looking at the built-in bird.
+  Future<void> _wearAPack() async {
+    final pack = await packWornIn(widget.environment);
+    if (!mounted) return;
+    switch (pack) {
+      case null:
+        return;
+      case Unreadable(:final reason):
+        FlutterError.reportError(
+          FlutterErrorDetails(
+            exception: reason,
+            library: 'roac',
+            context: ErrorDescription('wearing a character pack'),
+          ),
+        );
+      case Character():
+        setState(() => _worn = pack);
+    }
   }
 
   Future<void> _readWindowPlacement() => _placement.run(() async {
@@ -192,7 +241,10 @@ class _PerchState extends State<Perch> with WindowListener {
     // A hand may have grabbed the mascot while the window was moving, and
     // that hand has the last word on where it stands.
     if (!mounted || _gait != Gait.walking) return;
-    setState(() => _stance = next);
+    setState(() {
+      _walked += (next.left - _stance.left).abs();
+      _stance = next;
+    });
   });
 
   /// Arms the next spell, putting out any that still stands.
@@ -367,7 +419,12 @@ class _PerchState extends State<Perch> with WindowListener {
       onTap: _tapped,
       onPanStart: (_) => _grabbed(),
       onSecondaryTap: _togglePin,
-      child: Sprite(gait: _gait, facing: _stance.facing),
+      child: Sprite(
+        gait: _gait,
+        facing: _stance.facing,
+        worn: _worn,
+        walked: _walked,
+      ),
     );
     return _speaking ? _bubbleAbove(mascot) : mascot;
   }

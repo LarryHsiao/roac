@@ -1,5 +1,8 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:roac/pack.dart';
 import 'package:roac/roaming.dart';
 import 'package:roac/sprite.dart';
 
@@ -148,6 +151,107 @@ void main() {
       // Nothing but the phase has moved. If that alone did not ask for a fresh
       // painting, the bird would stand frozen however long it breathed.
       expect(drawn().shouldRepaint(atFirst), expected);
+    });
+  });
+
+  group('which frame of a pack is shown', () {
+    Poses posesOf({
+      required List<int> sequence,
+      int? everyMs,
+      int? everyPx,
+      required ui.Image strip,
+    }) => Poses(
+      strip: strip,
+      frames: sequence.length,
+      sequence: sequence,
+      everyMs: everyMs,
+      everyPx: everyPx,
+    );
+
+    late ui.Image strip;
+
+    setUpAll(() async {
+      final recorder = ui.PictureRecorder();
+      ui.Canvas(
+        recorder,
+      ).drawPaint(ui.Paint()..color = const ui.Color(0xFF000000));
+      strip = await recorder.endRecording().toImage(4, 1);
+    });
+
+    test('a walk counts the ground it has covered, not the clock', () {
+      const expected = [0, 1, 0, 2];
+      final walking = posesOf(sequence: [0, 1, 0, 2], everyPx: 5, strip: strip);
+
+      final actual = [
+        for (final walked in [0.0, 5.0, 10.0, 15.0])
+          frameAt(walking, phase: 0, walked: walked),
+      ];
+
+      expect(actual, expected);
+    });
+
+    test('and comes round again, however far it has gone', () {
+      const expected = 0;
+      final walking = posesOf(sequence: [0, 1, 0, 2], everyPx: 5, strip: strip);
+
+      final actual = frameAt(walking, phase: 0, walked: 20);
+
+      expect(actual, expected);
+    });
+
+    test('a rest counts its own turning through the cycle', () {
+      const expected = [0, 1, 2, 3];
+      final resting = posesOf(
+        sequence: [0, 1, 2, 3],
+        everyMs: 600,
+        strip: strip,
+      );
+
+      final actual = [
+        for (final phase in [0.0, 0.25, 0.5, 0.75])
+          frameAt(resting, phase: phase, walked: 999),
+      ];
+
+      expect(actual, expected);
+    });
+
+    test('a worn character sets its own tempo, not the built-in one', () {
+      const expected = Duration(milliseconds: 2000);
+      final resting = posesOf(
+        sequence: [0, 1, 2, 3, 4],
+        everyMs: 400,
+        strip: strip,
+      );
+
+      final actual = cycleOf(
+        resting,
+        Gait.idle,
+        breath: const Duration(milliseconds: 2400),
+        stride: const Duration(milliseconds: 520),
+      );
+
+      expect(actual, expected);
+    });
+
+    test('a bird drawing himself keeps the periods written for him', () {
+      const expected = (idle: 2400, walking: 520);
+
+      final actual = (
+        idle: cycleOf(
+          null,
+          Gait.idle,
+          breath: const Duration(milliseconds: 2400),
+          stride: const Duration(milliseconds: 520),
+        ).inMilliseconds,
+        walking: cycleOf(
+          null,
+          Gait.walking,
+          breath: const Duration(milliseconds: 2400),
+          stride: const Duration(milliseconds: 520),
+        ).inMilliseconds,
+      );
+
+      expect(actual, expected);
     });
   });
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:ui' as ui;
 
 import 'package:archive/archive.dart';
@@ -76,6 +77,34 @@ final class _Fault<T> extends _Read<T> {
   const _Fault(this.reason);
 
   final String reason;
+}
+
+/// The pack the environment asks for, read from wherever packs are kept.
+///
+/// Null when there is none to wear, which is no failure: Roäc draws himself
+/// when he is given nobody else to be. A pack that is there but will not be
+/// read comes back as [Unreadable], because somebody chose it and deserves to
+/// know why they are looking at the built-in bird instead.
+Future<Pack?> packWornIn(Map<String, String> environment) async {
+  final kept = Directory(packsIn(environment));
+  String? chosen;
+  try {
+    if (!kept.existsSync()) return null;
+    final packs = kept
+        .listSync()
+        .whereType<File>()
+        .map((file) => file.uri.pathSegments.last)
+        .where((named) => named.endsWith('.zip'))
+        .toList();
+    chosen = packChosenFrom(packs, environment);
+    if (chosen == null) return null;
+    return await packFrom(await File('${kept.path}/$chosen').readAsBytes());
+  } catch (trouble) {
+    // The listing is inside this too, not only the reading. A folder that
+    // goes away between the asking and the looking would otherwise throw
+    // past every sentence this was written to give.
+    return Unreadable('${chosen ?? kept.path} could not be read ($trouble).');
+  }
 }
 
 /// What was made of a pack.
