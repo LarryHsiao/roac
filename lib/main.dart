@@ -9,6 +9,7 @@ import 'package:window_manager/window_manager.dart';
 
 import 'bubble.dart';
 import 'counsel.dart';
+import 'l10n/words.dart';
 import 'latch.dart';
 import 'pack.dart';
 import 'roaming.dart';
@@ -39,6 +40,35 @@ Future<void> main() async {
 /// What the running app believes about the world it stands in.
 final _theWorld = Platform.environment;
 
+/// Which of Roäc's tongues [asked] should be answered in.
+///
+/// [spoken] is the list Flutter offers — every tongue Roäc has words for. It
+/// is not consulted: this rule names its two outright, and answering with a
+/// tongue that is not in that list would be a bug in this function rather
+/// than something to discover at run time. The parameter is here because
+/// `localeResolutionCallback` hands it over.
+///
+/// Traditional Chinese, or else English — a reader whose language Roäc does
+/// not speak is answered in English rather than in silence.
+///
+/// The choosing is done here rather than left to Flutter's own matching,
+/// which would hand a Simplified reader the Traditional text on the strength
+/// of a shared language code alone. Traditional and Simplified are not one
+/// tongue with two spellings; a reader of one is not served by the other.
+/// The Chinese strings live in `app_zh.arb` and not `app_zh_Hant.arb` because
+/// the generator insists a script-coded file have a base beside it, and one
+/// file of Traditional text is better than two identical ones.
+Locale tongueFor(Locale? asked, Iterable<Locale> spoken) {
+  const english = Locale('en');
+  if (asked == null || asked.languageCode != 'zh') return english;
+  // macOS names the script outright (zh-Hant-TW); where it does not, the
+  // places that read Traditional say so by their region.
+  const traditional = {'TW', 'HK', 'MO'};
+  final isTraditional =
+      asked.scriptCode == 'Hant' || traditional.contains(asked.countryCode);
+  return isTraditional ? const Locale('zh') : english;
+}
+
 class Roac extends StatelessWidget {
   const Roac({super.key});
 
@@ -46,6 +76,9 @@ class Roac extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: Words.localizationsDelegates,
+      supportedLocales: Words.supportedLocales,
+      localeResolutionCallback: tongueFor,
       home: Scaffold(
         backgroundColor: Colors.transparent,
         body: Perch(environment: _theWorld),

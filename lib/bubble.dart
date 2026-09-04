@@ -6,6 +6,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'counsel.dart';
+import 'l10n/words.dart';
 
 /// How a link is followed — named so a test may stand in for the browser, in
 /// the same shape as the shell and the counsel this app already stands in for.
@@ -99,24 +100,22 @@ class _Said extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final words = Words.of(context);
     if (waiting) {
-      return const Row(
+      return Row(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 14,
             height: 14,
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
-          SizedBox(width: _padding),
-          Text('Roäc is thinking…', style: TextStyle(color: _faint)),
+          const SizedBox(width: _padding),
+          Text(words.thinking, style: const TextStyle(color: _faint)),
         ],
       );
     }
     return switch (counsel) {
-      null => const Text(
-        'Ask me what you have written down.',
-        style: TextStyle(color: _faint),
-      ),
+      null => Text(words.invitation, style: const TextStyle(color: _faint)),
       Answer(:final words) => _Rendered(
         words: words,
         opening: opening,
@@ -164,12 +163,6 @@ class _RenderedState extends State<_Rendered> {
 
   /// How long an aside stays before it gives the answer its room back.
   static const _aWhile = Duration(seconds: 6);
-
-  /// What is said when a link will not open. The address is not lost — it is
-  /// on the clipboard — but a reader told nothing would never know that.
-  static const _copied =
-      'That link would not open. Its address is on your '
-      'clipboard.';
 
   final _view = ScrollController();
 
@@ -235,7 +228,11 @@ class _RenderedState extends State<_Rendered> {
     final link = Uri.tryParse(href);
     if (link != null && await widget.opening(link)) return;
     await Clipboard.setData(ClipboardData(text: href));
-    _sayAside(_copied);
+    // The address is not lost — it is on the clipboard — but a reader told
+    // nothing would never know that. Said in their own tongue, which is why
+    // it is read here and not held as a constant.
+    if (!mounted) return;
+    _sayAside(Words.of(context).linkCopied);
   }
 
   /// Says something beneath the answer for a moment. The answer gives up the
@@ -314,11 +311,11 @@ class _Asking extends StatelessWidget {
       autofocus: true,
       style: const TextStyle(color: _ink),
       cursorColor: _edge,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         isDense: true,
-        hintText: 'Ask Roäc…',
-        hintStyle: TextStyle(color: _faint),
-        enabledBorder: UnderlineInputBorder(
+        hintText: Words.of(context).askHint,
+        hintStyle: const TextStyle(color: _faint),
+        enabledBorder: const UnderlineInputBorder(
           borderSide: BorderSide(color: _faint),
         ),
         focusedBorder: UnderlineInputBorder(

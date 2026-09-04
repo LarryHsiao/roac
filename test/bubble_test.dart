@@ -4,6 +4,7 @@ import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
 import 'package:roac/counsel.dart';
+import 'package:roac/l10n/words.dart';
 
 void main() {
   Future<void> show(
@@ -13,15 +14,13 @@ void main() {
     Opening opening = _nowhere,
     Wanting onWanting = _grantNothing,
   }) => tester.pumpWidget(
-    MaterialApp(
-      home: Scaffold(
-        body: Bubble(
-          counsel: counsel,
-          waiting: waiting,
-          onAsk: (_) {},
-          onWanting: onWanting,
-          opening: opening,
-        ),
+    _speaking(
+      Bubble(
+        counsel: counsel,
+        waiting: waiting,
+        onAsk: (_) {},
+        onWanting: onWanting,
+        opening: opening,
       ),
     ),
   );
@@ -232,3 +231,11 @@ Future<bool> _nowhere(Uri _) async => false;
 
 /// A window that grants no room, for the tests that are not about room.
 void _grantNothing(double _) {}
+
+/// The app root the widgets stand in, carrying the tongues they read their
+/// words from. Without these a bubble finds no Words and will not build.
+MaterialApp _speaking(Widget child) => MaterialApp(
+  localizationsDelegates: Words.localizationsDelegates,
+  supportedLocales: Words.supportedLocales,
+  home: Scaffold(body: child),
+);

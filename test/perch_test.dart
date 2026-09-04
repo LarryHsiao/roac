@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
 import 'package:roac/counsel.dart';
+import 'package:roac/l10n/words.dart';
 import 'package:roac/main.dart';
 import 'package:roac/roaming.dart';
 import 'package:roac/sprite.dart';
@@ -92,7 +93,7 @@ void main() {
 
   /// Raises the perch and lets its first placement read settle.
   Future<void> raise(WidgetTester tester) async {
-    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: Perch())));
+    await tester.pumpWidget(_speaking(const Perch()));
     await settle(tester);
   }
 
@@ -167,11 +168,7 @@ void main() {
     }
 
     Future<void> raiseAsking(WidgetTester tester, Asking asking) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(body: Perch(asking: asking)),
-        ),
-      );
+      await tester.pumpWidget(_speaking(Perch(asking: asking)));
       await settle(tester);
       await tester.tap(find.byType(Sprite));
       await settle(tester);
@@ -278,3 +275,11 @@ void main() {
     });
   });
 }
+
+/// The app root the perch stands in, carrying the tongues its bubble reads
+/// its words from. Without these a bubble finds no Words and will not build.
+MaterialApp _speaking(Widget child) => MaterialApp(
+  localizationsDelegates: Words.localizationsDelegates,
+  supportedLocales: Words.supportedLocales,
+  home: Scaffold(body: child),
+);

@@ -43,7 +43,7 @@ configuration file — the environment is the whole of it.
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 99 tests
+flutter test                  # 105 tests
 flutter analyze
 ```
 
@@ -75,6 +75,7 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/roaming.dart` | `Gait`, `Facing`, `Stance`, and the pure geometry: where the mascot may stand on its display, and how a window is put back whole when the desktop has squashed it |
 | `lib/sprite.dart` | The raven and its three looks — breathing at rest, hopping and leaning while walking, still with its eye shut when pinned. All drawn, no art assets |
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
+| `lib/l10n/` | The words Roäc speaks. `app_en.arb` and `app_zh.arb` are written by hand; `words*.dart` beside them are generated from those and committed, so a fresh clone analyses and tests without a generation step |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |
 | `lib/pack.dart` | The character-pack format and its loader: reads a pack zip, or says plainly why it will not |
 | `lib/latch.dart` | A re-entrancy latch. Drops overlapping runs of one task and reports a lasting failure once, not on every tick |
@@ -87,6 +88,33 @@ per second and changes its mind every 2–7 seconds. The cursor is sampled at
 30 Hz. A CLI that says nothing for `90` seconds is given up on — measured
 between one line of its stream and the next, so a long answer is never cut off
 for being long.
+
+## The tongues he speaks
+
+English and Traditional Chinese, chosen by the system and never asked about.
+A reader whose language Roäc does not speak is answered in English rather
+than in silence.
+
+Traditional and Simplified are not one tongue with two spellings, so a
+Simplified reader is given English too. Flutter's own matching would hand
+them the Traditional text on the strength of a shared language code, which is
+why `tongueFor` in `lib/main.dart` does the choosing instead: the script
+decides, and where a system names no script, the regions that read
+Traditional — `TW`, `HK`, `MO` — stand in for it.
+
+The Chinese strings live in `app_zh.arb` rather than `app_zh_Hant.arb`
+because the generator insists a script-coded file have a base beside it, and
+one file of Traditional text is better than two identical ones.
+
+**The answers themselves are not translated.** They come back in whatever
+language the CLI answers in, which is the language your notes are written in.
+A complaint from the CLI passes through in its own words for the same reason.
+
+To see either tongue without changing your system, launch him with one named:
+
+```sh
+build/macos/Build/Products/Debug/roac.app/Contents/MacOS/roac -AppleLanguages "(zh-Hant-TW)"
+```
 
 ## Character packs
 

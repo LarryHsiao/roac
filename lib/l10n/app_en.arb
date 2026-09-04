@@ -1,0 +1,23 @@
+{
+  "@@locale": "en",
+
+  "thinking": "Roäc is thinking…",
+  "@thinking": {
+    "description": "Shown in the bubble while the CLI is being waited on."
+  },
+
+  "invitation": "Ask me what you have written down.",
+  "@invitation": {
+    "description": "Shown in the bubble before anything has been asked."
+  },
+
+  "askHint": "Ask Roäc…",
+  "@askHint": {
+    "description": "The placeholder in the field a question is typed into."
+  },
+
+  "linkCopied": "That link would not open. Its address is on your clipboard.",
+  "@linkCopied": {
+    "description": "Said when a link in an answer cannot be opened, so its address was put on the clipboard instead."
+  }
+}
