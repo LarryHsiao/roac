@@ -180,4 +180,49 @@ void main() {
       expect(actual, expected);
     });
   });
+
+  group('how tall the bubble may grow', () {
+    // A display 1000 tall, showing 900 of it, holding a 300-tall window.
+    const room = (from: 0.0, to: 1500.0, ceiling: 0.0, floor: 600.0);
+    const window = Size(420, 300);
+
+    test('to what was asked, when the display can spare it', () {
+      const expected = 500.0;
+
+      final actual = heightGrownTo(
+        wanted: 500,
+        standing: 300,
+        range: room,
+        span: window,
+      );
+
+      expect(actual, expected);
+    });
+
+    test('and no further than the display can spare', () {
+      const expected = 720.0;
+
+      final actual = heightGrownTo(
+        wanted: 5000,
+        standing: 300,
+        range: room,
+        span: window,
+      );
+
+      expect(actual, expected);
+    });
+
+    test('never shorter than it already stands, whatever is asked', () {
+      const expected = 300.0;
+
+      final actual = heightGrownTo(
+        wanted: 100,
+        standing: 300,
+        range: room,
+        span: window,
+      );
+
+      expect(actual, expected);
+    });
+  });
 }

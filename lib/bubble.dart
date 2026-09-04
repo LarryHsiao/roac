@@ -11,6 +11,10 @@ import 'counsel.dart';
 /// the same shape as the shell and the counsel this app already stands in for.
 typedef Opening = Future<bool> Function(Uri link);
 
+/// How the bubble asks for more room: [more] pixels than it has, to show the
+/// answer whole. Whoever grants it decides how much of that it can spare.
+typedef Wanting = void Function(double more);
+
 const Color _fill = Color(0xFF2E3440);
 const Color _edge = Color(0xFF88C0D0);
 const Color _ink = Color(0xFFECEFF4);
@@ -27,6 +31,7 @@ class Bubble extends StatelessWidget {
     required this.counsel,
     required this.waiting,
     required this.onAsk,
+    required this.onWanting,
     this.opening = launchUrl,
     super.key,
   });
@@ -38,6 +43,9 @@ class Bubble extends StatelessWidget {
   final bool waiting;
 
   final ValueChanged<String> onAsk;
+
+  /// Told when the answer has more to show than there is room for.
+  final Wanting onWanting;
 
   /// What follows a link the reader taps.
   final Opening opening;
@@ -56,7 +64,12 @@ class Bubble extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Expanded(
-            child: _Said(counsel: counsel, waiting: waiting, opening: opening),
+            child: _Said(
+              counsel: counsel,
+              waiting: waiting,
+              opening: opening,
+              onWanting: onWanting,
+            ),
           ),
           const SizedBox(height: _padding),
           _Asking(onAsk: onAsk),
@@ -76,11 +89,13 @@ class _Said extends StatelessWidget {
     required this.counsel,
     required this.waiting,
     required this.opening,
+    required this.onWanting,
   });
 
   final Counsel? counsel;
   final bool waiting;
   final Opening opening;
+  final Wanting onWanting;
 
   @override
   Widget build(BuildContext context) {
@@ -102,7 +117,11 @@ class _Said extends StatelessWidget {
         'Ask me what you have written down.',
         style: TextStyle(color: _faint),
       ),
-      Answer(:final words) => _Rendered(words: words, opening: opening),
+      Answer(:final words) => _Rendered(
+        words: words,
+        opening: opening,
+        onWanting: onWanting,
+      ),
       Trouble(:final reason) => _Plain(words: reason, colour: _alarm),
     };
   }
@@ -122,10 +141,15 @@ class _Said extends StatelessWidget {
 /// written does not appear to stop after its first three lines — unless the
 /// reader has scrolled up, in which case they are reading, and are left be.
 class _Rendered extends StatefulWidget {
-  const _Rendered({required this.words, required this.opening});
+  const _Rendered({
+    required this.words,
+    required this.opening,
+    required this.onWanting,
+  });
 
   final String words;
   final Opening opening;
+  final Wanting onWanting;
 
   @override
   State<_Rendered> createState() => _RenderedState();
@@ -134,6 +158,9 @@ class _Rendered extends StatefulWidget {
 class _RenderedState extends State<_Rendered> {
   /// How near the end the view must be for the words to carry it along.
   static const _following = 40.0;
+
+  /// The least shortfall worth asking to have made up.
+  static const _byTheStep = 24.0;
 
   /// How long an aside stays before it gives the answer its room back.
   static const _aWhile = Duration(seconds: 6);
@@ -150,17 +177,33 @@ class _RenderedState extends State<_Rendered> {
   Timer? _asideEnds;
 
   @override
+  void initState() {
+    super.initState();
+    // An answer that arrives whole never grows, and so would never once be
+    // measured. The room it wants is wanted from its first laying out.
+    _reckonRoom(carryOn: false);
+  }
+
+  @override
   void didUpdateWidget(_Rendered old) {
     super.didUpdateWidget(old);
-    if (old.words.length >= widget.words.length) return;
-    // Asked before the arriving words are laid out, so this still describes
-    // where the reader stood when they arrived: at the end, or up in the text.
-    if (_view.hasClients &&
-        _view.position.maxScrollExtent - _view.offset > _following) {
-      return;
-    }
-    _follow();
+    // Measured on every rebuild, not only when words arrive. Room granted is
+    // itself a rebuild, and an answer that still overruns after being given
+    // some must be able to ask for the rest — tying the asking to the words
+    // alone let it ask once and then fall silent, still cut off.
+    //
+    // Whether to carry the reader along is a different question, and asked
+    // before the arriving words are laid out, so it still describes where
+    // they stood when those words came: at the end, or up in the text.
+    _reckonRoom(carryOn: widget.words.length > old.words.length && _atTheEnd);
   }
+
+  /// Whether the reader stands at the end of what has arrived, and so would
+  /// have the newest words carried to them rather than be pulled from where
+  /// they were reading.
+  bool get _atTheEnd =>
+      !_view.hasClients ||
+      _view.position.maxScrollExtent - _view.offset <= _following;
 
   @override
   void dispose() {
@@ -169,12 +212,20 @@ class _RenderedState extends State<_Rendered> {
     super.dispose();
   }
 
-  /// Carried out after the frame, because the words that arrived have not been
-  /// laid out yet and the end of the view is not where it is about to be.
-  void _follow() {
+  /// Reckons the room the words want, after the frame — they have not been
+  /// laid out yet, and the end of the view is not where it is about to be.
+  /// Carries the reader down to it when [carryOn] says they were reading there.
+  ///
+  /// How far the words run past their room is exactly how much more room they
+  /// want — no measuring of the text is needed, the scroll has measured it
+  /// already. Asked for in steps, since a streamed answer lays out many times
+  /// a second and a window resized that often shakes.
+  void _reckonRoom({required bool carryOn}) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_view.hasClients) return;
-      _view.jumpTo(_view.position.maxScrollExtent);
+      final over = _view.position.maxScrollExtent;
+      if (carryOn) _view.jumpTo(over);
+      if (over >= _byTheStep) widget.onWanting(over);
     });
   }
 

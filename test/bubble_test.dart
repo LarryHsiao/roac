@@ -11,6 +11,7 @@ void main() {
     Counsel? counsel,
     bool waiting = false,
     Opening opening = _nowhere,
+    Wanting onWanting = _grantNothing,
   }) => tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
@@ -18,6 +19,7 @@ void main() {
           counsel: counsel,
           waiting: waiting,
           onAsk: (_) {},
+          onWanting: onWanting,
           opening: opening,
         ),
       ),
@@ -150,6 +152,54 @@ void main() {
     },
   );
 
+  testWidgets('an answer with more to show than room asks for more', (
+    tester,
+  ) async {
+    const expected = true;
+    var asked = 0.0;
+
+    await show(
+      tester,
+      counsel: Answer(List.filled(80, 'a line of the answer').join('\n')),
+      onWanting: (more) => asked = more,
+    );
+    await tester.pump();
+
+    expect(asked > 0, expected);
+  });
+
+  testWidgets('an answer that fits asks for nothing', (tester) async {
+    const expected = 0.0;
+    var asked = 0.0;
+
+    await show(
+      tester,
+      counsel: const Answer('short'),
+      onWanting: (more) => asked = more,
+    );
+    await tester.pump();
+
+    expect(asked, expected);
+  });
+
+  testWidgets('an answer still overrunning after room was given asks again', (
+    tester,
+  ) async {
+    // The room granted is itself a rebuild bearing the same words. Asking
+    // only when words arrive let a part-granted answer fall silent, still cut.
+    const expected = true;
+    final asked = <double>[];
+    final words = List.filled(80, 'a line of the answer').join('\n');
+
+    await show(tester, counsel: Answer(words), onWanting: asked.add);
+    await tester.pump();
+    final first = asked.length;
+    await show(tester, counsel: Answer(words), onWanting: asked.add);
+    await tester.pump();
+
+    expect(asked.length > first, expected);
+  });
+
   testWidgets('a tapped link is opened, not left to the reader to retype', (
     tester,
   ) async {
@@ -179,3 +229,6 @@ void main() {
 
 /// A browser that opens nothing, for the tests that are not about links.
 Future<bool> _nowhere(Uri _) async => false;
+
+/// A window that grants no room, for the tests that are not about room.
+void _grantNothing(double _) {}

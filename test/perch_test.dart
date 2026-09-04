@@ -200,6 +200,43 @@ void main() {
       expect(actual, expected);
     });
 
+    testWidgets(
+      'a long answer is given more of the window, up to the display',
+      (tester) async {
+        // Eight tenths of the mock desktop's 1055 visible pixels — the answer
+        // wants far more than that, so the display's own limit is what shows.
+        const expected = 844.0;
+        final counsel = counselThat();
+
+        await raiseAsking(tester, counsel.asking);
+        await tester.enterText(find.byType(TextField), 'a question');
+        await tester.testTextInput.receiveAction(TextInputAction.done);
+        await settle(tester);
+        counsel.saying.add(
+          Answer(List.filled(80, 'a line of the answer').join('\n')),
+        );
+        await settle(tester);
+
+        expect(_Desktop.standing.bounds.height, expected);
+      },
+    );
+
+    testWidgets('a short answer leaves the window the size it opened at', (
+      tester,
+    ) async {
+      const expected = speakingSize;
+      final counsel = counselThat();
+
+      await raiseAsking(tester, counsel.asking);
+      await tester.enterText(find.byType(TextField), 'a question');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      counsel.saying.add(const Answer('short'));
+      await settle(tester);
+
+      expect(_Desktop.standing.bounds.size, expected);
+    });
+
     testWidgets('a follow-up carries the conversation the answer named on', (
       tester,
     ) async {

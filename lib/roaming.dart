@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/foundation.dart';
@@ -35,9 +36,30 @@ enum Facing {
 /// transparent margin that clicks pass straight through.
 const double restingSize = 160;
 
-/// The room the window takes while the bubble is open — the mascot keeps its
-/// resting corner and the bubble fills what is added above and to the side.
+/// The room the window takes when the bubble first opens — the mascot keeps
+/// its resting corner and the bubble fills what is added above and to the
+/// side. It grows from here as an answer needs it.
 const Size speakingSize = Size(420, 300);
+
+/// The most of a display's height the bubble may take, however long the
+/// answer runs. A window taller than the desktop it stands on is squashed by
+/// macOS, and a bird pinned to the ceiling is no use to anybody.
+const double _mostOfADisplay = 0.8;
+
+/// How tall the bubble may grow on the display [range] describes, having
+/// asked for [wanted].
+///
+/// Never shorter than it already is: an answer arriving should not make the
+/// window jump smaller, which reads as a fault rather than a courtesy.
+double heightGrownTo({
+  required double wanted,
+  required double standing,
+  required Roam range,
+  required Size span,
+}) {
+  final visible = range.floor + span.height - range.ceiling;
+  return math.max(standing, math.min(wanted, visible * _mostOfADisplay));
+}
 
 /// Where the mascot may stand on its display: the span its left edge may pace,
 /// and the band its top edge must keep to.

@@ -98,6 +98,7 @@ class _PerchState extends State<Perch> with WindowListener {
   final _step = Latch('taking a step');
   final _cursor = Latch('following the cursor across the sprite');
   final _room = Latch('making room for the bubble');
+  final _growing = Latch('giving the bubble more room');
 
   Timer? _cursorWatch;
   Timer? _strideWatch;
@@ -361,11 +362,30 @@ class _PerchState extends State<Perch> with WindowListener {
     if (_gait != Gait.pinned) _armSpell();
   }
 
+  /// Gives the bubble [more] room than it has, so far as the display allows.
+  ///
+  /// Never less than it stands at: an answer arriving should not make the
+  /// window jump smaller. Dropped rather than queued while a resize is in
+  /// flight, since a streamed answer asks again a moment later anyway.
+  void _grantRoom(double more) => unawaited(
+    _growing.run(() async {
+      if (!_speaking) return;
+      final wanted = heightGrownTo(
+        wanted: _span.height + more,
+        standing: _span.height,
+        range: _range,
+        span: _span,
+      );
+      if (wanted <= _span.height) return;
+      await _standAs(Size(_span.width, wanted));
+    }),
+  );
+
   /// Gives the window [span], keeping the mascot's own corner where it stands:
   /// the bubble grows upward and to the side, so the sprite does not leap
   /// across the desktop merely because it began to speak.
   Future<void> _standAs(Size span) async {
-    _arrangement++;
+    final mine = ++_arrangement;
     final wanted = Rect.fromLTWH(
       _stance.left,
       _top + _span.height - span.height,
@@ -373,7 +393,11 @@ class _PerchState extends State<Perch> with WindowListener {
       span.height,
     );
     final displays = await ScreenRetriever.instance.getAllDisplays();
-    if (!mounted) return;
+    // Another size was called for while this one was in flight — the bubble
+    // shut, say, while it was still being given room. Without this the window
+    // is left at whichever resize *finished* last rather than the one last
+    // asked for, and a shut bubble can be found standing in a tall window.
+    if (!mounted || mine != _arrangement) return;
     final range = roamingRangeOn(displays, wanted, span) ?? _range;
     final whole = wholeWithin(wanted, range, span);
     setState(() {
@@ -438,7 +462,12 @@ class _PerchState extends State<Perch> with WindowListener {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Expanded(
-            child: Bubble(counsel: _counsel, waiting: _waiting, onAsk: _ask),
+            child: Bubble(
+              counsel: _counsel,
+              waiting: _waiting,
+              onAsk: _ask,
+              onWanting: _grantRoom,
+            ),
           ),
           SizedBox(width: restingSize, height: restingSize, child: mascot),
         ],

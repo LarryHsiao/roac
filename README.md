@@ -80,8 +80,9 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/latch.dart` | A re-entrancy latch. Drops overlapping runs of one task and reports a lasting failure once, not on every tick |
 | `macos/Runner/MainFlutterWindow.swift` | Makes the window see-through. Flutter's own options cannot reach these three properties |
 
-Notable constants: the window is `160` square at rest and `420 × 300` while
-speaking; the sprite within it is `120`. The mascot walks at `42` logical pixels
+Notable constants: the window is `160` square at rest and opens at `420 × 300`
+to speak, growing from there as an answer needs it, up to `0.8` of the
+display's visible height; the sprite within it is `120`. The mascot walks at `42` logical pixels
 per second and changes its mind every 2–7 seconds. The cursor is sampled at
 30 Hz. A CLI that says nothing for `90` seconds is given up on — measured
 between one line of its stream and the next, so a long answer is never cut off
