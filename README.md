@@ -136,3 +136,12 @@ macOS activating the app, which a status-bar item would sidestep.
 The sprite is a plain rounded square with no face, on purpose — a character has
 not been chosen. Its motion is drawn rather than played from frames, so real
 sprite art replaces `lib/sprite.dart` and nothing else.
+
+## Licence
+
+The code is **MIT** — see [LICENSE](LICENSE). Take it, change it, sell it.
+
+**Sprite art is not covered by that grant.** The placeholder square in
+`lib/sprite.dart` is part of the code and MIT like the rest, but any character
+art distributed for Roäc carries its own licence and its own terms. Art is a
+separate work; this licence says nothing about it either way.
