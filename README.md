@@ -43,7 +43,7 @@ configuration file — the environment is the whole of it.
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 79 tests
+flutter test                  # 99 tests
 flutter analyze
 ```
 
@@ -179,11 +179,6 @@ A status-bar item, launch at login, and Windows support.
 
 One rough edge remains: **the first click on an inactive Roäc is swallowed** by
 macOS activating the app, which a status-bar item would sidestep.
-
-The raven is drawn in code — shapes on a unit square, mirrored when it turns —
-rather than played from frames. There are no image assets, so nothing can fall
-out of step with the code. A sprite sheet, if one ever comes, replaces
-`lib/sprite.dart` and nothing else.
 
 ## Licence
 
