@@ -20,4 +20,18 @@ class WordsEn extends Words {
   @override
   String get linkCopied =>
       'That link would not open. Its address is on your clipboard.';
+
+  @override
+  String get noQuestion => 'Ask me something.';
+
+  @override
+  String get silence => 'Roäc fell silent, and was let go.';
+
+  @override
+  String noCounsel(int ending) {
+    return 'Roäc found no counsel (the CLI exited $ending).';
+  }
+
+  @override
+  String get surrender => 'The CLI gave up.';
 }

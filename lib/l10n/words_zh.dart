@@ -19,4 +19,18 @@ class WordsZh extends Words {
 
   @override
   String get linkCopied => '這個連結打不開，網址已複製到剪貼簿。';
+
+  @override
+  String get noQuestion => '問我些什麼吧。';
+
+  @override
+  String get silence => 'Roäc 久久不語，只好由他去了。';
+
+  @override
+  String noCounsel(int ending) {
+    return 'Roäc 找不到答案（CLI 以代碼 $ending 結束）。';
+  }
+
+  @override
+  String get surrender => 'CLI 放棄了。';
 }

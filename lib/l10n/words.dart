@@ -120,6 +120,30 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'That link would not open. Its address is on your clipboard.'**
   String get linkCopied;
+
+  /// Said when the question put to Roäc was empty.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me something.'**
+  String get noQuestion;
+
+  /// Said when the CLI stopped speaking for so long it was killed.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc fell silent, and was let go.'**
+  String get silence;
+
+  /// Said when the CLI ended without a last word and complained of nothing, leaving only its exit code.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc found no counsel (the CLI exited {ending}).'**
+  String noCounsel(int ending);
+
+  /// Said when the CLI reported a failure but named nothing that went wrong.
+  ///
+  /// In en, this message translates to:
+  /// **'The CLI gave up.'**
+  String get surrender;
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {

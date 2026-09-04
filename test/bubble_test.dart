@@ -93,7 +93,7 @@ void main() {
     const complaint = 'claude: command not found';
     const expected = true;
 
-    await show(tester, counsel: const Trouble(complaint));
+    await show(tester, counsel: const Complaint(complaint));
     final actual = shown(complaint);
 
     expect(actual, expected);
@@ -150,6 +150,28 @@ void main() {
       expect(actual, expected);
     },
   );
+
+  testWidgets('a trouble Roäc names himself is said in the reader\'s tongue', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(tester, counsel: const Silence());
+    final actual = shown('Roäc fell silent, and was let go.');
+
+    expect(actual, expected);
+  });
+
+  testWidgets('a trouble that carries a number says the number', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(tester, counsel: const NoCounsel(127));
+    final actual = find.textContaining('127').evaluate().isNotEmpty;
+
+    expect(actual, expected);
+  });
 
   testWidgets('an answer with more to show than room asks for more', (
     tester,

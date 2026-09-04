@@ -175,7 +175,7 @@ void main() {
 
       expect(
         counsel,
-        isA<Trouble>().having((t) => t.reason, 'reason', expected),
+        isA<Complaint>().having((t) => t.words, 'words', expected),
       );
     },
   );
@@ -190,7 +190,31 @@ void main() {
 
     final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
 
-    expect(counsel, isA<Trouble>().having((t) => t.reason, 'reason', expected));
+    expect(counsel, isA<Complaint>().having((t) => t.words, 'words', expected));
+  });
+
+  test(
+    'a CLI that fails and says nothing of why is not made to say something',
+    () async {
+      const expected = true;
+      final claude = _Claude(says: [finished(failed: true, result: '   ')]);
+
+      final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
+
+      expect(counsel is Surrender, expected);
+    },
+  );
+
+  test('a CLI that ends with no word at all is named by its ending', () async {
+    const expected = 127;
+    final claude = _Claude(says: const [], ending: expected);
+
+    final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
+
+    expect(
+      counsel,
+      isA<NoCounsel>().having((t) => t.ending, 'ending', expected),
+    );
   });
 
   test('a CLI that falls silent is killed, not left to burn', () async {
@@ -202,7 +226,7 @@ void main() {
       shell: shellOf(claude),
       silence: const Duration(milliseconds: 20),
     ).last;
-    final actual = (troubled: counsel is Trouble, killed: claude.killed);
+    final actual = (troubled: counsel is Silence, killed: claude.killed);
 
     expect(actual, expected);
   });
@@ -242,7 +266,7 @@ void main() {
             throw const ProcessException('/bin/zsh', [], 'no such shell'),
       ).last;
 
-      expect(counsel, isA<Trouble>());
+      expect(counsel, isA<Complaint>());
     },
   );
 
@@ -257,7 +281,7 @@ void main() {
         return _Claude();
       },
     ).last;
-    final actual = (troubled: counsel is Trouble, started: started);
+    final actual = (troubled: counsel is NoQuestion, started: started);
 
     expect(actual, expected);
   });

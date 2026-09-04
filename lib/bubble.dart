@@ -8,6 +8,19 @@ import 'package:url_launcher/url_launcher.dart';
 import 'counsel.dart';
 import 'l10n/words.dart';
 
+/// What a [trouble] says, in the reader's own tongue.
+///
+/// A complaint from the CLI or the shell is the exception: it is passed on in
+/// its own words, whatever those are. They were not written by Roäc and are
+/// not his to translate.
+String _saidPlainly(Words tongue, Trouble trouble) => switch (trouble) {
+  NoQuestion() => tongue.noQuestion,
+  Silence() => tongue.silence,
+  NoCounsel(:final ending) => tongue.noCounsel(ending),
+  Surrender() => tongue.surrender,
+  Complaint(:final words) => words,
+};
+
 /// How a link is followed — named so a test may stand in for the browser, in
 /// the same shape as the shell and the counsel this app already stands in for.
 typedef Opening = Future<bool> Function(Uri link);
@@ -100,7 +113,7 @@ class _Said extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final words = Words.of(context);
+    final tongue = Words.of(context);
     if (waiting) {
       return Row(
         children: [
@@ -110,18 +123,21 @@ class _Said extends StatelessWidget {
             child: CircularProgressIndicator(strokeWidth: 2),
           ),
           const SizedBox(width: _padding),
-          Text(words.thinking, style: const TextStyle(color: _faint)),
+          Text(tongue.thinking, style: const TextStyle(color: _faint)),
         ],
       );
     }
     return switch (counsel) {
-      null => Text(words.invitation, style: const TextStyle(color: _faint)),
+      null => Text(tongue.invitation, style: const TextStyle(color: _faint)),
       Answer(:final words) => _Rendered(
         words: words,
         opening: opening,
         onWanting: onWanting,
       ),
-      Trouble(:final reason) => _Plain(words: reason, colour: _alarm),
+      final Trouble trouble => _Plain(
+        words: _saidPlainly(tongue, trouble),
+        colour: _alarm,
+      ),
     };
   }
 }

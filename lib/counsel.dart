@@ -64,10 +64,43 @@ final class Answer extends Counsel {
 }
 
 /// Why Roäc could not answer — said plainly rather than swallowed.
-final class Trouble extends Counsel {
-  const Trouble(this.reason);
+///
+/// What went wrong is named here; the sentence that says it is written where
+/// a reader's tongue is known. A file that talks to a subprocess has no
+/// business composing English.
+sealed class Trouble extends Counsel {
+  const Trouble();
+}
 
-  final String reason;
+/// Nothing was asked.
+final class NoQuestion extends Trouble {
+  const NoQuestion();
+}
+
+/// The CLI said nothing for so long that it was let go.
+final class Silence extends Trouble {
+  const Silence();
+}
+
+/// The CLI stopped without a last word and complained of nothing, leaving
+/// only the code it [ending] with to go on.
+final class NoCounsel extends Trouble {
+  const NoCounsel(this.ending);
+
+  final int ending;
+}
+
+/// The CLI reported a failure and said nothing of what it was.
+final class Surrender extends Trouble {
+  const Surrender();
+}
+
+/// Something the CLI or the shell itself said. Passed on in its own words:
+/// they are not Roäc's to translate.
+final class Complaint extends Trouble {
+  const Complaint(this.words);
+
+  final String words;
 }
 
 /// Puts [question] to the Claude Code CLI, which searches and reads the
@@ -97,7 +130,7 @@ Stream<Counsel> askCounsel(
   Process? claude;
   told.onListen = () async {
     if (question.trim().isEmpty) {
-      told.add(const Trouble('Ask me something.'));
+      told.add(const NoQuestion());
       await told.close();
       return;
     }
@@ -112,9 +145,9 @@ Stream<Counsel> askCounsel(
         told.add(counsel);
       }
     } on TimeoutException {
-      _say(told, const Trouble('Roäc fell silent, and was let go.'));
+      _say(told, const Silence());
     } catch (trouble) {
-      _say(told, Trouble('$trouble'));
+      _say(told, Complaint('$trouble'));
     } finally {
       claude?.kill();
       if (!told.isClosed) await told.close();
@@ -173,20 +206,23 @@ Stream<Counsel> _listenTo(Process claude, Duration silence) async* {
     }
     if (!told.ended) continue;
     ended = true;
-    if (told.failed != null) yield Trouble(told.failed!);
+    final failed = told.failed;
+    if (failed != null) {
+      yield failed.isEmpty ? const Surrender() : Complaint(failed);
+    }
     return;
   }
-  if (!ended) yield Trouble(await _wentWrong(claude, complaining));
+  if (!ended) yield await _wentWrong(claude, complaining);
 }
 
 /// Why a CLI that stopped without a final word stopped.
-Future<String> _wentWrong(Process claude, Future<String> complaining) async {
+Future<Trouble> _wentWrong(Process claude, Future<String> complaining) async {
   final complaint = (await complaining).trim();
-  if (complaint.isNotEmpty) return complaint;
+  if (complaint.isNotEmpty) return Complaint(complaint);
   // Bounded like every other wait here: a process whose output has ended but
   // which has not yet been reaped must not hold the answer open for ever.
   final ending = await claude.exitCode.timeout(_reaping, onTimeout: () => -1);
-  return 'Roäc found no counsel (the CLI exited $ending).';
+  return NoCounsel(ending);
 }
 
 /// Reads one line of the CLI's stream for the little Roäc needs of it: the
@@ -212,7 +248,9 @@ Future<String> _wentWrong(Process claude, Future<String> complaining) async {
       session: session,
       words: null,
       ended: true,
-      failed: failed ? '${told['result'] ?? 'The CLI gave up.'}' : null,
+      // Empty rather than null when it failed but named nothing: null means it
+      // did not fail at all, and the two must not be read as one.
+      failed: failed ? '${told['result'] ?? ''}'.trim() : null,
     );
   }
   return (

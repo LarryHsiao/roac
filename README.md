@@ -43,7 +43,7 @@ configuration file — the environment is the whole of it.
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 105 tests
+flutter test                  # 109 tests
 flutter analyze
 ```
 
@@ -108,7 +108,15 @@ one file of Traditional text is better than two identical ones.
 
 **The answers themselves are not translated.** They come back in whatever
 language the CLI answers in, which is the language your notes are written in.
-A complaint from the CLI passes through in its own words for the same reason.
+A complaint from the CLI or the shell passes through in its own words for the
+same reason — `Complaint` in `lib/counsel.dart` is the trouble that carries
+foreign words, and the only one the render does not translate.
+
+Roäc's own troubles do not travel as sentences. `Trouble` is a sealed set
+naming *what went wrong* — nothing was asked, the CLI fell silent, it ended
+with only a code — and `saidPlainly` in `lib/bubble.dart` says each in the
+reader's tongue. A file that talks to a subprocess has no business composing
+English.
 
 To see either tongue without changing your system, launch him with one named:
 

@@ -19,5 +19,28 @@
   "linkCopied": "That link would not open. Its address is on your clipboard.",
   "@linkCopied": {
     "description": "Said when a link in an answer cannot be opened, so its address was put on the clipboard instead."
+  },
+
+  "noQuestion": "Ask me something.",
+  "@noQuestion": {
+    "description": "Said when the question put to Roäc was empty."
+  },
+
+  "silence": "Roäc fell silent, and was let go.",
+  "@silence": {
+    "description": "Said when the CLI stopped speaking for so long it was killed."
+  },
+
+  "noCounsel": "Roäc found no counsel (the CLI exited {ending}).",
+  "@noCounsel": {
+    "description": "Said when the CLI ended without a last word and complained of nothing, leaving only its exit code.",
+    "placeholders": {
+      "ending": { "type": "int" }
+    }
+  },
+
+  "surrender": "The CLI gave up.",
+  "@surrender": {
+    "description": "Said when the CLI reported a failure but named nothing that went wrong."
   }
 }

@@ -4,5 +4,9 @@
   "thinking": "Roäc 正在思考…",
   "invitation": "問我你寫下的事。",
   "askHint": "問 Roäc…",
-  "linkCopied": "這個連結打不開，網址已複製到剪貼簿。"
+  "linkCopied": "這個連結打不開，網址已複製到剪貼簿。",
+  "noQuestion": "問我些什麼吧。",
+  "silence": "Roäc 久久不語，只好由他去了。",
+  "noCounsel": "Roäc 找不到答案（CLI 以代碼 {ending} 結束）。",
+  "surrender": "CLI 放棄了。"
 }
