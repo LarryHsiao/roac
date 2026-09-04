@@ -125,6 +125,14 @@ flutter test tool/make_pack.dart
 It is committed so that it can be opened and copied — the format's worked
 example, made by the same code that draws the bird on screen.
 
+**Roäc wears the installed copy, not this one.** Regenerating the pack changes
+the file in the repo and nothing else, so after running the tool, install it
+again or you will go on looking at the pack you had before:
+
+```sh
+cp packs/roac-raven.zip ~/Library/Application\ Support/roac/packs/
+```
+
 ## Two decisions not to undo by accident
 
 **The macOS app sandbox is deliberately absent** from both

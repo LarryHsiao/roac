@@ -271,6 +271,18 @@ class _Raven extends CustomPainter {
   /// both would be drawn on the same line, and the bird would stand on one.
   static const double _legStance = 0.030;
 
+  /// How far ink must keep from a frame's edge: half the outline it is drawn
+  /// with, and a little besides for antialiasing to fall into.
+  ///
+  /// In pixels, and not as a fraction of the frame. The outline is a fixed
+  /// width whatever size the bird is drawn at, so a fraction that leaves
+  /// room enough at one size leaves too little at a smaller one.
+  ///
+  /// It matters because the pixel past a frame's edge is not empty: in a
+  /// sprite sheet it is the next frame's first column, and ink that oversteps
+  /// arrives inside the neighbouring bird.
+  static const double _room = _outline / 2 + 2;
+
   final Gait gait;
   final Facing facing;
 
@@ -317,6 +329,10 @@ class _Raven extends CustomPainter {
 
   /// Head, back, tail and breast in one unbroken line — a bird has no seam at
   /// its neck, and a tail drawn apart reads as a triangle stuck on behind.
+  ///
+  /// The tail's points are held off the near edge by the same room the beak
+  /// keeps from the far one: it is the same sharp, stroked vertex, and would
+  /// overstep first if the outline were ever drawn heavier.
   Path _birdOn(Size size) {
     final w = size.width;
     final h = size.height;
@@ -332,9 +348,9 @@ class _Raven extends CustomPainter {
         h * 0.28,
       )
       ..cubicTo(w * 0.38, h * 0.34, w * 0.30, h * 0.46, w * 0.26, h * 0.60)
-      ..lineTo(w * 0.03, h * 0.72)
+      ..lineTo(math.max(w * 0.03, _room), h * 0.72)
       ..lineTo(w * 0.09, h * 0.80)
-      ..lineTo(w * 0.02, h * 0.86)
+      ..lineTo(math.max(w * 0.02, _room), h * 0.86)
       ..lineTo(w * 0.30, h * 0.84)
       ..cubicTo(w * 0.48, h * 0.90, w * 0.72, h * 0.78, w * 0.72, h * 0.58)
       ..cubicTo(
@@ -361,14 +377,19 @@ class _Raven extends CustomPainter {
   }
 
   /// Heavy and wedge-shaped, as a raven's is — a thin one reads as a sparrow.
+  ///
+  /// Its tip stops short of the edge by the head's furthest thrust and the
+  /// room ink must keep, so it stays inside however far the head pushes. The
+  /// base was drawn back with it, to keep the wedge's heft rather than leave
+  /// a stub.
   Path _beakOn(Size size) {
     final w = size.width;
     final h = size.height;
     final ahead = w * _leading;
     return Path()
-      ..moveTo(w * 0.78 + ahead, h * 0.24)
-      ..lineTo(w * 0.99 + ahead, h * 0.33)
-      ..lineTo(w * 0.76 + ahead, h * 0.40)
+      ..moveTo(w * 0.76 + ahead, h * 0.24)
+      ..lineTo(w - w * _headThrust - _room + ahead, h * 0.33)
+      ..lineTo(w * 0.74 + ahead, h * 0.40)
       ..close();
   }
 
