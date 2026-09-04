@@ -39,12 +39,6 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
   static const _breathPeriod = Duration(milliseconds: 2400);
   static const _stridePeriod = Duration(milliseconds: 520);
 
-  /// How far the body rises at the crest of a beat, in logical pixels, and how
-  /// far it leans into its walk, in radians.
-  static const _breathRise = 3.0;
-  static const _hopRise = 10.0;
-  static const _lean = 0.1;
-
   late final AnimationController _beat = AnimationController(vsync: this);
 
   @override
@@ -80,22 +74,16 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    // The drawing owns every part of the motion, rather than a transform above
+    // it moving a fixed picture about. A frame of a sprite sheet carries its
+    // whole pose, so the bird that will one day be drawn from frames must be
+    // describable the same way — by a gait, a facing, and where it stands in
+    // its cycle.
     return Center(
       child: AnimatedBuilder(
         animation: _beat,
-        builder: (context, child) {
-          final beat = math.sin(_beat.value * 2 * math.pi);
-          final walking = widget.gait == Gait.walking;
-          final rise = walking ? -beat.abs() * _hopRise : beat * _breathRise;
-          final lean = walking
-              ? widget.facing.stride * beat.abs() * _lean
-              : 0.0;
-          return Transform.translate(
-            offset: Offset(0, rise),
-            child: Transform.rotate(angle: lean, child: child),
-          );
-        },
-        child: _Body(gait: widget.gait, facing: widget.facing),
+        builder: (context, _) =>
+            _Body(gait: widget.gait, facing: widget.facing, phase: _beat.value),
       ),
     );
   }
@@ -103,19 +91,36 @@ class _SpriteState extends State<Sprite> with SingleTickerProviderStateMixin {
 
 /// The mascot's body: Roäc himself, drawn rather than played from frames.
 class _Body extends StatelessWidget {
-  const _Body({required this.gait, required this.facing});
+  const _Body({required this.gait, required this.facing, required this.phase});
 
   final Gait gait;
   final Facing facing;
+  final double phase;
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       size: const Size.square(Sprite.size),
-      painter: _Raven(gait: gait, facing: facing),
+      painter: _Raven(gait: gait, facing: facing, phase: phase),
     );
   }
 }
+
+/// How far the near leg has swung at [phase] of a stride: forward at a quarter
+/// through, back at three quarters, level as it passes between.
+///
+/// Those two quarter marks are the footfalls, and a sprite sheet of this bird
+/// samples exactly there — a stride drawn as three poses, played as four
+/// steps, with the passing pose serving twice.
+double legSwingAt(double phase) => math.sin(phase * 2 * math.pi);
+
+/// How low the body sits at [phase] of a stride: down at each footfall, up as
+/// it passes over the standing leg. Twice a cycle, once per step.
+double bodyDropAt(double phase) => legSwingAt(phase).abs();
+
+/// How far the head is thrust forward at [phase] of a stride — the push and
+/// catch-up that is a corvid's whole walk, more than the legs ever are.
+double headThrustAt(double phase) => math.cos(phase * 4 * math.pi);
 
 /// A raven in as few strokes as will still read as one across a room.
 ///
@@ -127,7 +132,7 @@ class _Body extends StatelessWidget {
 /// carries an outline in the colour that also says whether it is free to roam
 /// — the same signal the placeholder's border carried, now around a bird.
 class _Raven extends CustomPainter {
-  const _Raven({required this.gait, required this.facing});
+  const _Raven({required this.gait, required this.facing, required this.phase});
 
   static const Color _feather = Color(0xFF272B36);
   static const Color _wing = Color(0xFF3B4252);
@@ -137,8 +142,21 @@ class _Raven extends CustomPainter {
 
   static const double _outline = 2.5;
 
+  /// How far the bird moves through its pose, as fractions of the sprite.
+  static const double _breathRise = 0.015;
+  static const double _bodyDrop = 0.035;
+  static const double _headThrust = 0.030;
+  static const double _legSwing = 0.055;
+
+  /// How far apart the legs stand when the bird is not walking. Without it
+  /// both would be drawn on the same line, and the bird would stand on one.
+  static const double _legStance = 0.030;
+
   final Gait gait;
   final Facing facing;
+
+  /// Where the bird stands in its cycle, from 0 to 1.
+  final double phase;
 
   Color get _edge => gait == Gait.pinned ? _held : _roaming;
 
@@ -149,35 +167,65 @@ class _Raven extends CustomPainter {
       canvas.translate(size.width, 0);
       canvas.scale(-1, 1);
     }
+    // The whole bird settles and rises; the head runs ahead of it and waits.
+    canvas.translate(0, _settling * size.height);
     final bird = _birdOn(size);
     final beak = _beakOn(size);
     final wing = _wingOn(size);
+    _drawLegs(canvas, size);
     _fill(canvas, bird, _feather);
     _fill(canvas, beak, _beak);
     _stroke(canvas, beak);
     _stroke(canvas, bird);
     _fill(canvas, wing, _wing);
     _stroke(canvas, wing);
-    _drawFooting(canvas, size);
     _drawEye(canvas, size);
     canvas.restore();
   }
+
+  /// How far the body sits from where it would stand at rest, as a fraction of
+  /// the sprite. A walking bird drops at each footfall; a resting one breathes.
+  double get _settling => switch (gait) {
+    Gait.pinned => 0,
+    Gait.walking => bodyDropAt(phase) * _bodyDrop,
+    Gait.idle => math.sin(phase * 2 * math.pi) * _breathRise,
+  };
+
+  /// How far ahead of the body the head is carried. Only a walking bird
+  /// pushes; the rest hold it where it sits.
+  double get _leading =>
+      gait == Gait.walking ? headThrustAt(phase) * _headThrust : 0;
 
   /// Head, back, tail and breast in one unbroken line — a bird has no seam at
   /// its neck, and a tail drawn apart reads as a triangle stuck on behind.
   Path _birdOn(Size size) {
     final w = size.width;
     final h = size.height;
+    final ahead = w * _leading;
     return Path()
-      ..moveTo(w * 0.80, h * 0.26)
-      ..cubicTo(w * 0.72, h * 0.10, w * 0.48, h * 0.12, w * 0.46, h * 0.28)
+      ..moveTo(w * 0.80 + ahead, h * 0.26)
+      ..cubicTo(
+        w * 0.72 + ahead,
+        h * 0.10,
+        w * 0.48 + ahead,
+        h * 0.12,
+        w * 0.46 + ahead * 0.5,
+        h * 0.28,
+      )
       ..cubicTo(w * 0.38, h * 0.34, w * 0.30, h * 0.46, w * 0.26, h * 0.60)
       ..lineTo(w * 0.03, h * 0.72)
       ..lineTo(w * 0.09, h * 0.80)
       ..lineTo(w * 0.02, h * 0.86)
       ..lineTo(w * 0.30, h * 0.84)
       ..cubicTo(w * 0.48, h * 0.90, w * 0.72, h * 0.78, w * 0.72, h * 0.58)
-      ..cubicTo(w * 0.72, h * 0.46, w * 0.68, h * 0.40, w * 0.72, h * 0.36)
+      ..cubicTo(
+        w * 0.72,
+        h * 0.46,
+        w * 0.68 + ahead * 0.5,
+        h * 0.40,
+        w * 0.72 + ahead,
+        h * 0.36,
+      )
       ..close();
   }
 
@@ -197,27 +245,35 @@ class _Raven extends CustomPainter {
   Path _beakOn(Size size) {
     final w = size.width;
     final h = size.height;
+    final ahead = w * _leading;
     return Path()
-      ..moveTo(w * 0.78, h * 0.24)
-      ..lineTo(w * 0.99, h * 0.33)
-      ..lineTo(w * 0.76, h * 0.40)
+      ..moveTo(w * 0.78 + ahead, h * 0.24)
+      ..lineTo(w * 0.99 + ahead, h * 0.33)
+      ..lineTo(w * 0.76 + ahead, h * 0.40)
       ..close();
   }
 
-  /// Two feet, so it stands on the desktop rather than floating above it.
+  /// Two legs, swinging opposite one another so the bird strides rather than
+  /// hops. They stay planted on the ground the body rises from, so the walk
+  /// reads as the body moving over the feet and not the feet moving with it.
   ///
   /// Drawn in the outline's colour rather than the feather's: they reach below
   /// the silhouette, and near-black there would vanish on a dark desktop —
-  /// leaving the bird floating, which is the one thing the feet are for.
-  void _drawFooting(Canvas canvas, Size size) {
+  /// leaving the bird floating, which is the one thing the legs are for.
+  void _drawLegs(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+    final swing = gait == Gait.walking ? legSwingAt(phase) * _legSwing : 0.0;
+    final ground = h * 0.94 - h * _settling;
     final leg = Paint()
       ..color = _edge
       ..strokeWidth = _outline
       ..strokeCap = StrokeCap.round;
-    for (final at in [0.40, 0.56]) {
+    for (final leading in [1, -1]) {
+      final hip = 0.48 + _legStance * leading * 0.5;
       canvas.drawLine(
-        Offset(size.width * at, size.height * 0.84),
-        Offset(size.width * at, size.height * 0.94),
+        Offset(w * hip, h * 0.84),
+        Offset(w * (hip + _legStance * leading + swing * leading), ground),
         leg,
       );
     }
@@ -255,5 +311,6 @@ class _Raven extends CustomPainter {
   );
 
   @override
-  bool shouldRepaint(_Raven old) => old.gait != gait || old.facing != facing;
+  bool shouldRepaint(_Raven old) =>
+      old.phase != phase || old.gait != gait || old.facing != facing;
 }

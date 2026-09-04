@@ -33,49 +33,49 @@ void main() {
     expect(actual, expected);
   });
 
-  group('the mascot moves as its gait says', () {
-    /// The vertical offset the sprite is drawn at — the outer Transform is the
-    /// translate, the rotate sits inside it.
-    double riseIn(WidgetTester tester) {
-      final lift = tester.widget<Transform>(find.byType(Transform).first);
-      return lift.transform.storage[13];
-    }
+  group('the walk cycle, which the sprite sheet will sample', () {
+    test('the footfalls are a quarter and three quarters through', () {
+      const expected = (
+        passing: 0.0,
+        contactNear: 1.0,
+        over: 0.0,
+        contactFar: -1.0,
+      );
 
-    Future<void> show(WidgetTester tester, Gait gait) => tester.pumpWidget(
-      MaterialApp(
-        home: Sprite(gait: gait, facing: Facing.right),
-      ),
-    );
+      final actual = (
+        passing: legSwingAt(0),
+        contactNear: legSwingAt(0.25),
+        over: legSwingAt(0.5),
+        contactFar: legSwingAt(0.75),
+      );
 
-    testWidgets('a pinned mascot holds perfectly still', (tester) async {
-      const expected = (atFirst: 0.0, later: 0.0);
-
-      await show(tester, Gait.pinned);
-      final atFirst = riseIn(tester);
-      await tester.pump(const Duration(milliseconds: 600));
-      final actual = (atFirst: atFirst, later: riseIn(tester));
-
-      expect(actual, expected);
+      expect(actual.passing, closeTo(expected.passing, 0.001));
+      expect(actual.contactNear, closeTo(expected.contactNear, 0.001));
+      expect(actual.over, closeTo(expected.over, 0.001));
+      expect(actual.contactFar, closeTo(expected.contactFar, 0.001));
     });
 
-    testWidgets('an idle mascot breathes where it stands', (tester) async {
-      const expected = 3.0;
+    test('the body is lowest at each footfall and highest passing over', () {
+      const expected = (passing: 0.0, footfall: 1.0);
 
-      await show(tester, Gait.idle);
-      await tester.pump(const Duration(milliseconds: 600));
-      final actual = riseIn(tester);
+      final actual = (passing: bodyDropAt(0.5), footfall: bodyDropAt(0.25));
 
-      expect(actual, closeTo(expected, 0.001));
+      expect(actual.passing, closeTo(expected.passing, 0.001));
+      expect(actual.footfall, closeTo(expected.footfall, 0.001));
     });
 
-    testWidgets('a walking mascot hops, rising off its ground', (tester) async {
-      const expected = -10.0;
+    test('the head pushes and catches up twice a stride, once per step', () {
+      const expected = (start: 1.0, firstStep: -1.0, middle: 1.0);
 
-      await show(tester, Gait.walking);
-      await tester.pump(const Duration(milliseconds: 130));
-      final actual = riseIn(tester);
+      final actual = (
+        start: headThrustAt(0),
+        firstStep: headThrustAt(0.25),
+        middle: headThrustAt(0.5),
+      );
 
-      expect(actual, closeTo(expected, 0.001));
+      expect(actual.start, closeTo(expected.start, 0.001));
+      expect(actual.firstStep, closeTo(expected.firstStep, 0.001));
+      expect(actual.middle, closeTo(expected.middle, 0.001));
     });
   });
 
@@ -122,6 +122,32 @@ void main() {
       );
 
       expect(actual, expected);
+    });
+
+    testWidgets('the bird moving through its cycle calls for one too', (
+      tester,
+    ) async {
+      const expected = true;
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Sprite(gait: Gait.idle, facing: Facing.right),
+        ),
+      );
+      CustomPainter drawn() => tester
+          .widget<CustomPaint>(
+            find.descendant(
+              of: find.byType(Sprite),
+              matching: find.byType(CustomPaint),
+            ),
+          )
+          .painter!;
+      final atFirst = drawn();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Nothing but the phase has moved. If that alone did not ask for a fresh
+      // painting, the bird would stand frozen however long it breathed.
+      expect(drawn().shouldRepaint(atFirst), expected);
     });
   });
 }
