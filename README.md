@@ -43,7 +43,7 @@ configuration file — the environment is the whole of it.
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 46 tests
+flutter test                  # 79 tests
 flutter analyze
 ```
 
@@ -76,6 +76,7 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/sprite.dart` | The raven and its three looks — breathing at rest, hopping and leaning while walking, still with its eye shut when pinned. All drawn, no art assets |
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |
+| `lib/pack.dart` | The character-pack format and its loader: reads a pack zip, or says plainly why it will not |
 | `lib/latch.dart` | A re-entrancy latch. Drops overlapping runs of one task and reports a lasting failure once, not on every tick |
 | `macos/Runner/MainFlutterWindow.swift` | Makes the window see-through. Flutter's own options cannot reach these three properties |
 
@@ -85,6 +86,44 @@ per second and changes its mind every 2–7 seconds. The cursor is sampled at
 30 Hz. A CLI that says nothing for `90` seconds is given up on — measured
 between one line of its stream and the next, so a long answer is never cut off
 for being long.
+
+## Character packs
+
+Roäc draws himself, and needs no pack to work. A pack is an optional
+replacement, kept in `~/Library/Application Support/roac/packs` — or wherever
+`ROAC_PACKS` points — and chosen by `ROAC_PACK`, or else the first by name.
+
+One is a zip holding a manifest and a PNG strip for each gait:
+
+```json
+{
+  "format": 1,
+  "name": "Roäc", "author": "...", "licence": "...",
+  "frame": { "width": 120, "height": 120 },
+  "gaits": {
+    "idle":    { "image": "idle.png",    "frames": 4, "sequence": [0,1,2,3], "msPerFrame": 600 },
+    "walking": { "image": "walking.png", "frames": 3, "sequence": [0,1,0,2], "pxPerFrame": 5 },
+    "pinned":  { "image": "pinned.png",  "frames": 1 }
+  }
+}
+```
+
+Three things about that are worth an artist's attention:
+
+- **A `sequence` may play a frame twice**, which is why a walk is three
+  drawings and not four: passing, near footfall, passing, far footfall.
+- **Idle counts milliseconds; walking counts pixels travelled.** A walk timed
+  by the clock would skate whenever the speed changed.
+- **Only one direction is drawn.** Roäc mirrors it when he turns.
+
+`packs/roac-raven.zip` is Roäc himself, written out by
+
+```sh
+flutter test tool/make_pack.dart
+```
+
+It is committed so that it can be opened and copied — the format's worked
+example, made by the same code that draws the bird on screen.
 
 ## Two decisions not to undo by accident
 

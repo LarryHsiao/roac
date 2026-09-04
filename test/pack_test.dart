@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -6,6 +7,7 @@ import 'package:archive/archive.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/pack.dart';
 import 'package:roac/roaming.dart';
+import 'package:roac/sprite.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -414,4 +416,84 @@ void main() {
       expect(actual, expected);
     });
   });
+
+  group('the pack Roäc ships with', () {
+    // The first code anywhere that reads a pack off the disk, through the very
+    // path a bought one takes.
+    test('is read, and draws every gait Roäc has', () async {
+      const expected = (gaits: 3, walk: [0, 1, 0, 2], frame: 120.0);
+
+      final read = await packFrom(
+        await File('packs/roac-raven.zip').readAsBytes(),
+      );
+
+      final worn = read as Character;
+      final actual = (
+        gaits: worn.poses.length,
+        walk: worn.poses[Gait.walking]!.sequence,
+        frame: worn.frame.width,
+      );
+      expect(actual.gaits, expected.gaits);
+      expect(actual.walk, expected.walk);
+      expect(actual.frame, expected.frame);
+    });
+
+    test('draws its walk in the three poses a stride is made of', () async {
+      const expected = (frames: 3, strip: 360);
+
+      final read = await packFrom(
+        await File('packs/roac-raven.zip').readAsBytes(),
+      );
+
+      final walk = (read as Character).poses[Gait.walking]!;
+      final actual = (frames: walk.frames, strip: walk.strip.width);
+      expect(actual, expected);
+    });
+
+    // The pack is written by hand with tool/make_pack.dart, so it can fall
+    // behind the bird it was drawn from. Comparing pixels rather than encoded
+    // bytes, since a new PNG encoder must not read as a stale pack.
+    test('is still the bird the code draws today', () async {
+      const expected = true;
+
+      final read = await packFrom(
+        await File('packs/roac-raven.zip').readAsBytes(),
+      );
+      final shipped = await _pixelsOf(
+        (read as Character).poses[Gait.pinned]!.strip,
+      );
+      final drawnNow = await _pixelsOf(await _drawPinned());
+
+      expect(_sameBytes(shipped, drawnNow), expected);
+    });
+  });
+}
+
+/// The raven as the code draws him at rest, in one frame.
+Future<ui.Image> _drawPinned() async {
+  final recorder = ui.PictureRecorder();
+  paintRoac(
+    ui.Canvas(recorder),
+    const ui.Size(Sprite.size, Sprite.size),
+    gait: Gait.pinned,
+    facing: Facing.right,
+    phase: 0,
+  );
+  return recorder.endRecording().toImage(
+    Sprite.size.round(),
+    Sprite.size.round(),
+  );
+}
+
+Future<Uint8List> _pixelsOf(ui.Image image) async {
+  final raw = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+  return raw!.buffer.asUint8List();
+}
+
+bool _sameBytes(Uint8List one, Uint8List other) {
+  if (one.length != other.length) return false;
+  for (var at = 0; at < one.length; at++) {
+    if (one[at] != other[at]) return false;
+  }
+  return true;
 }

@@ -122,6 +122,20 @@ double bodyDropAt(double phase) => legSwingAt(phase).abs();
 /// catch-up that is a corvid's whole walk, more than the legs ever are.
 double headThrustAt(double phase) => math.cos(phase * 4 * math.pi);
 
+/// Draws Roäc as he stands at [phase] of his [gait].
+///
+/// The widget reaches the same drawing through its painter; this door exists
+/// for `tool/make_pack.dart`, which needs a frame of him outside any widget
+/// at all. Both go to the one painter, so there is never a second bird to
+/// keep in step with this one.
+void paintRoac(
+  Canvas canvas,
+  Size size, {
+  required Gait gait,
+  required Facing facing,
+  required double phase,
+}) => _Raven(gait: gait, facing: facing, phase: phase).paint(canvas, size);
+
 /// A raven in as few strokes as will still read as one across a room.
 ///
 /// Everything is laid out on a unit square and scaled, so the bird keeps its
