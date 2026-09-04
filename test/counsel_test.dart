@@ -145,7 +145,7 @@ void main() {
     'the question and the directory go as arguments, never spliced',
     () async {
       const question = 'what of "; rm -rf /" then?';
-      const expectedArguments = ['roac', question, knowledgeBase];
+      final expectedArguments = ['roac', question, knowledgeBase];
       late List<String> given;
 
       await askCounsel(
@@ -260,5 +260,34 @@ void main() {
     final actual = (troubled: counsel is Trouble, started: started);
 
     expect(actual, expected);
+  });
+
+  group('where the notes are kept', () {
+    test('under the home directory by default, so nothing must be set up', () {
+      const expected = '/Users/someone/Minerva';
+
+      final actual = notesIn({'HOME': '/Users/someone'});
+
+      expect(actual, expected);
+    });
+
+    test('wherever ROAC_NOTES names, when it names anywhere', () {
+      const expected = '/elsewhere/my-notes';
+
+      final actual = notesIn({
+        'HOME': '/Users/someone',
+        'ROAC_NOTES': expected,
+      });
+
+      expect(actual, expected);
+    });
+
+    test('an empty ROAC_NOTES is no answer, and the default stands', () {
+      const expected = '/Users/someone/Minerva';
+
+      final actual = notesIn({'HOME': '/Users/someone', 'ROAC_NOTES': '  '});
+
+      expect(actual, expected);
+    });
   });
 }

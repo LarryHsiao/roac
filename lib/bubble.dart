@@ -135,7 +135,19 @@ class _RenderedState extends State<_Rendered> {
   /// How near the end the view must be for the words to carry it along.
   static const _following = 40.0;
 
+  /// How long an aside stays before it gives the answer its room back.
+  static const _aWhile = Duration(seconds: 6);
+
+  /// What is said when a link will not open. The address is not lost — it is
+  /// on the clipboard — but a reader told nothing would never know that.
+  static const _copied =
+      'That link would not open. Its address is on your '
+      'clipboard.';
+
   final _view = ScrollController();
+
+  String? _aside;
+  Timer? _asideEnds;
 
   @override
   void didUpdateWidget(_Rendered old) {
@@ -152,6 +164,7 @@ class _RenderedState extends State<_Rendered> {
 
   @override
   void dispose() {
+    _asideEnds?.cancel();
     _view.dispose();
     super.dispose();
   }
@@ -171,10 +184,37 @@ class _RenderedState extends State<_Rendered> {
     final link = Uri.tryParse(href);
     if (link != null && await widget.opening(link)) return;
     await Clipboard.setData(ClipboardData(text: href));
+    _sayAside(_copied);
+  }
+
+  /// Says something beneath the answer for a moment. The answer gives up the
+  /// room rather than being covered by it: a note that hides the very line it
+  /// is about would be worse than the silence it replaced.
+  void _sayAside(String words) {
+    if (!mounted) return;
+    setState(() => _aside = words);
+    _asideEnds?.cancel();
+    _asideEnds = Timer(_aWhile, () {
+      if (mounted) setState(() => _aside = null);
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final aside = _aside;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Expanded(child: _answer()),
+        if (aside != null) ...[
+          const SizedBox(height: 4),
+          Text(aside, style: const TextStyle(color: _alarm)),
+        ],
+      ],
+    );
+  }
+
+  Widget _answer() {
     return Markdown(
       controller: _view,
       data: widget.words,

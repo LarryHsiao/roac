@@ -16,7 +16,7 @@ Named for the raven of Erebor, son of Carc, who bore tidings to Thorin.
 | Flutter | The revision pinned in `.metadata` — `3b62efc2a3` — which is 3.38.7 stable. Dart SDK `^3.10.7`, from `pubspec.yaml` |
 | Platform | macOS. Windows is scaffolded but unimplemented; Linux is out of scope |
 | CLI | `claude` on your login shell's `PATH` and already authenticated |
-| Notes | A directory of markdown, named by `knowledgeBase` in `lib/counsel.dart` |
+| Notes | A directory of markdown — `Minerva` under your home directory, or wherever `ROAC_NOTES` points |
 
 Two packages carry the window: **`window_manager`** makes it frameless,
 transparent, always-on-top and movable, and **`screen_retriever`** reports the
@@ -34,16 +34,17 @@ client, in an app whose whole claim is that nothing leaves the machine.
 package, and the eight entries it adds to `pubspec.lock` are all its own — one
 per platform, plus the interface they share — not third-party weight.
 
-`knowledgeBase` is currently hard-coded to `/Users/larryhsiao/Minerva`. Change
-that constant to point Roäc at your own notes; there is no configuration file
-yet.
+Roäc reads `~/Minerva` unless the `ROAC_NOTES` environment variable names
+somewhere else. It is derived rather than written into the source, because an
+absolute home path is true on one machine and wrong on every other. There is no
+configuration file — the environment is the whole of it.
 
 ## Running
 
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 42 tests
+flutter test                  # 46 tests
 flutter analyze
 ```
 
@@ -54,7 +55,7 @@ flutter analyze
 | Drag the sprite | Move it. It stops roaming, then takes it up again after a moment |
 | Click the sprite | Open the speech bubble; click again to close it |
 | Ask a second question | It carries on from the first. Shutting the bubble forgets the conversation and begins again |
-| Tap a link in an answer | It opens in your browser; where it cannot be opened, its address goes to the clipboard instead |
+| Tap a link in an answer | It opens in your browser. Where it will not open, its address goes to the clipboard and the bubble says so |
 | `Esc` | Close the speech bubble |
 | Right-click the sprite | Pin it in place — no walking, no breathing, border turns grey. Right-click again to release |
 

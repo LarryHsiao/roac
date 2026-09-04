@@ -6,7 +6,19 @@ import 'package:flutter/foundation.dart';
 
 /// The knowledge base Roäc answers from. Its contents are read locally by the
 /// Claude Code CLI and never leave the machine.
-const knowledgeBase = '/Users/larryhsiao/Minerva';
+///
+/// `Minerva` under the home directory by default, so it needs no setting up;
+/// name `ROAC_NOTES` to point it elsewhere. Derived rather than written down
+/// because an absolute home path in checked-in source is true on one machine
+/// and wrong on every other.
+final knowledgeBase = notesIn(Platform.environment);
+
+/// Where [environment] says the notes are kept.
+String notesIn(Map<String, String> environment) {
+  final named = environment['ROAC_NOTES'];
+  if (named != null && named.trim().isNotEmpty) return named;
+  return '${environment['HOME'] ?? ''}/Minerva';
+}
 
 /// How long Roäc will wait on a silent CLI before giving up on it.
 ///

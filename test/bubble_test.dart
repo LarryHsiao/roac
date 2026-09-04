@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
@@ -96,6 +97,58 @@ void main() {
 
     expect(actual, expected);
   });
+
+  testWidgets(
+    'a link that will not open says so, rather than copying in silence',
+    (tester) async {
+      const address = 'https://example.test/policy.html';
+      const expected = (
+        said: 'That link would not open. Its address is on your clipboard.',
+        copied: address,
+      );
+      String? copied;
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async {
+          if (call.method == 'Clipboard.setData') {
+            copied = (call.arguments as Map)['text'] as String?;
+          }
+          return null;
+        },
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+
+      await show(
+        tester,
+        counsel: const Answer('see [the policy]($address) now'),
+        opening: (_) async => false,
+      );
+      tester.widget<Markdown>(find.byType(Markdown)).onTapLink!(
+        'the policy',
+        address,
+        '',
+      );
+      await tester.pump();
+      await tester.pump();
+      final actual = (
+        said:
+            find
+                .textContaining('Its address is on your clipboard')
+                .evaluate()
+                .isNotEmpty
+            ? expected.said
+            : 'nothing was said',
+        copied: copied,
+      );
+
+      expect(actual, expected);
+    },
+  );
 
   testWidgets('a tapped link is opened, not left to the reader to retype', (
     tester,
