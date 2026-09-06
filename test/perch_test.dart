@@ -59,6 +59,12 @@ class _Desktop {
             bounds.height,
           );
           return null;
+        // Asked by startDragging on a Windows host and nowhere else, so a
+        // mock that answered every other question still let the drag throw:
+        // the default null is cast to bool. Answered plainly rather than left
+        // to the default, since a test desktop is never full screen.
+        case 'isFullScreen':
+          return false;
         default:
           return null;
       }

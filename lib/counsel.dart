@@ -15,14 +15,26 @@ const _silence = Duration(seconds: 90);
 /// How long to wait for a finished CLI to be reaped before naming it lost.
 const _reaping = Duration(seconds: 5);
 
+/// The name the CLI answers to. Found on the PATH rather than written down,
+/// since where it is installed is the machine's business and not this file's.
+const _cli = 'claude';
+
 /// The flags that make the CLI speak as it thinks rather than all at once.
-const _streaming =
-    '--output-format stream-json --verbose --include-partial-messages';
+const _streaming = [
+  '--output-format',
+  'stream-json',
+  '--verbose',
+  '--include-partial-messages',
+];
+
+/// The same flags as one line, for the shell that takes a command rather than
+/// a list. Written from [_streaming] so the two cannot drift apart.
+final _streamingSaid = _streaming.join(' ');
 
 /// A question put afresh, and one put to a conversation already begun.
-const _fresh = 'exec claude -p "\$1" --add-dir "\$2" $_streaming';
-const _again =
-    'exec claude -p "\$1" --add-dir "\$2" --resume "\$3" $_streaming';
+final _fresh = 'exec $_cli -p "\$1" --add-dir "\$2" $_streamingSaid';
+final _again =
+    'exec $_cli -p "\$1" --add-dir "\$2" --resume "\$3" $_streamingSaid';
 
 /// How a command is started — named so a test may stand in for the real shell.
 typedef Shell =
@@ -93,23 +105,29 @@ final class Complaint extends Trouble {
 /// Pass [resuming] the session of an earlier answer to carry that conversation
 /// on, so a follow-up needs no repeating of what came before.
 ///
-/// The CLI is reached through a login shell because a windowed app inherits
-/// almost none of the user's PATH, and the question, the directory and the
-/// session are passed as arguments rather than spliced into the command, so
-/// nothing they happen to contain can change what runs. The shell `exec`s the
-/// CLI so that it takes the shell's own place: the process held here is then
-/// the CLI itself, and letting go of this stream kills the thing that thinks.
+/// How the CLI is reached differs by machine — [summonsFor] holds that
+/// reasoning — but on every machine the question, the directory and the
+/// session travel as arguments rather than spliced into a command, so nothing
+/// they happen to contain can change what runs; and on every machine the
+/// process held here is the CLI itself, so letting go of this stream kills
+/// the thing that thinks.
 ///
 /// It is run *inside* the knowledge base, not merely granted it. A windowed
 /// app's working directory is the filesystem root, and `--add-dir` only widens
 /// what the CLI may read — it does not tell it where to look. Rooted at `/`
 /// the search finds nothing; rooted at the knowledge base it finds the note.
+///
+/// [onWindows] is the machine to summon for, and is asked of the platform when
+/// it is not named. It is a parameter so that either summons may be exercised
+/// from either host: a test that could only run on the machine it was written
+/// on would leave the other branch unwatched.
 Stream<Counsel> askCounsel(
   String question, {
   required String notes,
   String? resuming,
   Shell shell = Process.start,
   Duration silence = _silence,
+  bool? onWindows,
 }) {
   final told = StreamController<Counsel>();
   Process? claude;
@@ -120,9 +138,15 @@ Stream<Counsel> askCounsel(
       return;
     }
     try {
+      final summons = summonsFor(
+        question,
+        notes: notes,
+        resuming: resuming,
+        onWindows: onWindows ?? Platform.isWindows,
+      );
       claude = await shell(
-        '/bin/zsh',
-        _command(question, resuming, notes),
+        summons.executable,
+        summons.arguments,
         workingDirectory: notes,
       );
       await for (final counsel in _listenTo(claude!, silence)) {
@@ -151,16 +175,61 @@ void _say(StreamController<Counsel> told, Counsel counsel) {
   if (!told.isClosed) told.add(counsel);
 }
 
-/// The shell's argument list. `$0` is the name the shell wears; the rest are
-/// the question, the knowledge base, and the conversation being carried on.
-List<String> _command(String question, String? resuming, String notes) => [
-  '-lc',
-  resuming == null ? _fresh : _again,
-  'roac',
-  question,
-  notes,
-  ?resuming,
-];
+/// What to run, and what to hand it.
+typedef Summons = ({String executable, List<String> arguments});
+
+/// How [question] is put on this machine, carrying [resuming] where a
+/// conversation is being taken up again.
+///
+/// **Windows is given no shell.** A windowed app there inherits the whole of
+/// the user's PATH from the registry, and inheriting almost none of it is the
+/// only reason a shell is used at all. Worse, Windows has no `exec`: a
+/// `cmd /c claude ...` would leave `cmd` holding the handle, so killing it
+/// would reap the wrapper and leave the CLI thinking on — unheard, unreaped,
+/// and once for every question anybody walked away from. Summoned directly,
+/// the handle is the CLI itself and letting go of it kills the thing that
+/// thinks. This is not an oversight to be tidied into a shell later; the
+/// shell is what would break it.
+///
+/// **Elsewhere a login shell is needed**, because a windowed app inherits
+/// almost none of the user's PATH and would not find the CLI at all. It
+/// `exec`s the CLI so that the CLI takes the shell's own place, which buys
+/// back the same handle Windows gets for nothing. `$0` is the name the shell
+/// wears; the question, [notes] and the session follow it.
+///
+/// Neither form ever splices. The question is an argument in both, so nothing
+/// it contains — a quote, a semicolon, an `rm -rf` — can change what runs.
+Summons summonsFor(
+  String question, {
+  required String notes,
+  String? resuming,
+  required bool onWindows,
+}) {
+  if (onWindows) {
+    return (
+      executable: _cli,
+      arguments: [
+        '-p',
+        question,
+        '--add-dir',
+        notes,
+        if (resuming != null) ...['--resume', resuming],
+        ..._streaming,
+      ],
+    );
+  }
+  return (
+    executable: '/bin/zsh',
+    arguments: [
+      '-lc',
+      resuming == null ? _fresh : _again,
+      'roac',
+      question,
+      notes,
+      ?resuming,
+    ],
+  );
+}
 
 /// Reads what the CLI says, and says it on as it comes.
 ///

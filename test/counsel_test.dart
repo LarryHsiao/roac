@@ -137,12 +137,14 @@ void main() {
       'a',
       notes: _notes,
       shell: watching((a) => fresh = a),
+      onWindows: false,
     ).drain<void>();
     await askCounsel(
       'a',
       notes: _notes,
       resuming: 'an-old-session',
       shell: watching((a) => resumed = a),
+      onWindows: false,
     ).drain<void>();
 
     final actual = (
@@ -164,6 +166,7 @@ void main() {
       await askCounsel(
         question,
         notes: _notes,
+        onWindows: false,
         shell:
             (
               String _,
@@ -178,6 +181,112 @@ void main() {
       expect(given.sublist(2), expectedArguments);
     },
   );
+
+  group('how the CLI is summoned, machine by machine', () {
+    test('Windows is given the CLI itself, with no shell between', () {
+      const expectedExecutable = 'claude';
+      final expectedArguments = [
+        '-p',
+        'where?',
+        '--add-dir',
+        _notes,
+        '--output-format',
+        'stream-json',
+        '--verbose',
+        '--include-partial-messages',
+      ];
+
+      final actual = summonsFor('where?', notes: _notes, onWindows: true);
+
+      expect(actual.executable, expectedExecutable);
+      expect(actual.arguments, expectedArguments);
+    });
+
+    test('elsewhere a login shell is given, and execs the CLI', () {
+      const expected = (executable: '/bin/zsh', wears: 'roac', execs: true);
+
+      final summons = summonsFor('where?', notes: _notes, onWindows: false);
+      final actual = (
+        executable: summons.executable,
+        wears: summons.arguments[2],
+        execs: summons.arguments[1].startsWith('exec claude'),
+      );
+
+      expect(actual, expected);
+    });
+
+    test('a resumed conversation is named on Windows too', () {
+      const expected = ['--resume', 'an-old-session'];
+
+      final arguments = summonsFor(
+        'where?',
+        notes: _notes,
+        resuming: 'an-old-session',
+        onWindows: true,
+      ).arguments;
+      final named = arguments.indexOf('--resume');
+      final actual = named < 0
+          ? const <String>[]
+          : arguments.sublist(named, named + 2);
+
+      expect(actual, expected);
+    });
+
+    test('a fresh question names no conversation on Windows', () {
+      const expected = false;
+
+      final actual = summonsFor(
+        'where?',
+        notes: _notes,
+        onWindows: true,
+      ).arguments.contains('--resume');
+
+      expect(actual, expected);
+    });
+
+    test('the question is an argument on Windows, never spliced', () {
+      const question = 'what of "; rm -rf /" then?';
+      const expected = (carried: true, spliced: false);
+
+      final arguments = summonsFor(
+        question,
+        notes: _notes,
+        onWindows: true,
+      ).arguments;
+      final actual = (
+        carried: arguments.contains(question),
+        spliced: arguments.any(
+          (argument) => argument != question && argument.contains('rm -rf'),
+        ),
+      );
+
+      expect(actual, expected);
+    });
+
+    test('both machines ask for the same streaming flags', () {
+      const expected = [
+        '--output-format',
+        'stream-json',
+        '--verbose',
+        '--include-partial-messages',
+      ];
+      const expectedOfTheShell = true;
+
+      final windows = summonsFor(
+        'where?',
+        notes: _notes,
+        onWindows: true,
+      ).arguments;
+      final elsewhere = summonsFor(
+        'where?',
+        notes: _notes,
+        onWindows: false,
+      ).arguments[1];
+
+      expect(windows.sublist(windows.length - expected.length), expected);
+      expect(elsewhere.endsWith(expected.join(' ')), expectedOfTheShell);
+    });
+  });
 
   test(
     'a CLI that ends badly reports what it said, not an empty answer',

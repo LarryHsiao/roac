@@ -1,0 +1,11 @@
+# Roäc is written on macOS and built on Windows both. Every text file is held
+# LF in the index and LF in the working tree, so a Windows checkout does not
+# report a change it has not made: without this, core.autocrlf rewrites the
+# generated plugin registrants on every `flutter pub get` and git flags four
+# files that differ from the index by nothing at all.
+* text=auto eol=lf
+
+# Not text. packs/roac-raven.zip is committed as the pack format's worked
+# example, and a line-ending conversion would corrupt it.
+*.zip binary
+*.png binary

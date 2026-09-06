@@ -13,8 +13,8 @@ Named for the raven of Erebor, son of Carc, who bore tidings to Thorin.
 | | |
 |---|---|
 | Flutter | The revision pinned in `.metadata` — `3b62efc2a3` — which is 3.38.7 stable. Dart SDK `^3.10.7`, from `pubspec.yaml` |
-| Platform | macOS. Windows is scaffolded but unimplemented; Linux is out of scope |
-| CLI | `claude` on your login shell's `PATH` and already authenticated |
+| Platform | macOS and Windows. Linux is out of scope |
+| CLI | `claude` already authenticated — on your login shell's `PATH` on macOS, on your `PATH` on Windows |
 | Notes | A directory of markdown — `Minerva` under your home directory, or wherever `ROAC_NOTES` points |
 
 Two packages carry the window: **`window_manager`** makes it frameless,
@@ -96,9 +96,16 @@ safety net for whatever that leaves no room for.
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 147 tests
+
+flutter run -d windows        # the same, on Windows
+flutter build windows --debug # then run build\windows\x64\runner\Debug\roac.exe
+
+flutter test                  # 151 tests
 flutter analyze
 ```
+
+Roäc keeps no taskbar button on Windows (`skipTaskbar: true`), so close him
+with `Stop-Process -Name roac`.
 
 ## Using it
 
@@ -194,8 +201,9 @@ build/macos/Build/Products/Debug/roac.app/Contents/MacOS/roac -AppleLanguages "(
 ## Character packs
 
 Roäc draws himself, and needs no pack to work. A pack is an optional
-replacement, kept in `~/Library/Application Support/roac/packs` — or wherever
-`ROAC_PACKS` points — and chosen by `ROAC_PACK`, or else the first by name.
+replacement, kept in `~/Library/Application Support/roac/packs` on macOS and
+`%APPDATA%\roac\packs` on Windows — or wherever `ROAC_PACKS` points — and
+chosen by `ROAC_PACK`, or else the first by name.
 
 One is a zip holding a manifest and a PNG strip for each gait:
 
@@ -234,7 +242,11 @@ the file in the repo and nothing else, so after running the tool, install it
 again or you will go on looking at the pack you had before:
 
 ```sh
-cp packs/roac-raven.zip ~/Library/Application\ Support/roac/packs/
+cp packs/roac-raven.zip ~/Library/Application\ Support/roac/packs/   # macOS
+```
+
+```powershell
+Copy-Item packs\roac-raven.zip $env:APPDATA\roac\packs\              # Windows
 ```
 
 ## Two decisions not to undo by accident
@@ -250,17 +262,32 @@ cannot be distributed through the Mac App Store.
 windowed app inherits a working directory of `/`, and `--add-dir` widens what
 the CLI may read without telling it where to look; rooted at the filesystem
 root the search finds nothing and the answer comes back wrong. `askCounsel`
-passes `workingDirectory: knowledgeBase` for this reason.
+passes `workingDirectory: notes` for this reason.
 
-Two smaller choices in the same command, for the same file:
+**How the CLI is reached differs by machine, and `summonsFor` holds the
+reasoning.** On macOS it goes through a **login shell** (`/bin/zsh -lc`),
+because a windowed app inherits almost none of your `PATH` and would not find
+`claude` at all; the shell **`exec`s** the CLI so that the CLI takes the
+shell's place, and the process handle is then the thing that is thinking.
 
-- It goes through a **login shell** (`/bin/zsh -lc`) because a windowed app
-  inherits almost none of your `PATH`.
-- The shell **`exec`s** the CLI, so the process handle is the CLI itself and
-  killing it kills the thing that is thinking.
-- The question and the directory are passed as **positional arguments**, never
-  spliced into the command string, so nothing a question contains can change
-  what runs.
+**Windows is given no shell.** It needs none — a windowed app there inherits
+the whole of your `PATH` from the registry — and it must not have one, because
+Windows has no `exec`. A `cmd /c claude …` would leave `cmd` holding the
+handle: killing it would reap the wrapper and leave the CLI thinking on,
+unheard and unreaped, once for every question anybody walked away from.
+Summoned directly, the handle is the CLI itself, which is what the `exec`
+buys elsewhere. This is not an oversight waiting to be tidied into a shell.
+
+On both, the question, the directory and the session travel as **arguments**,
+never spliced into a command string, so nothing a question contains can change
+what runs.
+
+**`lib/settings.dart` does not yet know Windows either.** Its defaults —
+`~/Minerva`, the packs folder, and `config.json` itself — are all built from
+`HOME`, which Windows does not set; nothing there falls back to `USERPROFILE`
+or `APPDATA` yet. `summonsFor` reaches Windows correctly once it is *given* a
+notes folder, but nothing today points it at one there without `ROAC_NOTES`
+set by hand.
 
 ## Testing
 
@@ -278,10 +305,18 @@ mascot *looks* alive is a judgement no assertion makes for you.
 
 ## Not yet built
 
-A status-bar item, launch at login, and Windows support.
+A status-bar item, and launch at login.
 
-One rough edge remains: **the first click on an inactive Roäc is swallowed** by
-macOS activating the app, which a status-bar item would sidestep.
+Two rough edges remain:
+
+- **The first click on an inactive Roäc is swallowed** by the system activating
+  the app — on macOS, which a status-bar item would sidestep, and on Windows
+  alike.
+- **On a Windows display scaled past 100%, he comes out small.** The window is
+  asked for 160 logical pixels and takes 160 physical ones, so at 125% he
+  stands at four fifths of his height and his transparent margin narrows with
+  him. `window_manager`'s Windows `setBounds` does not scale where its
+  `getBounds` does.
 
 ## Licence
 
