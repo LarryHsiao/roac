@@ -1,6 +1,5 @@
 {
   "@@locale": "zh",
-
   "thinking": "Roäc 正在思考…",
   "invitation": "問我你寫下的事。",
   "askHint": "問 Roäc…",
@@ -8,5 +7,24 @@
   "noQuestion": "問我些什麼吧。",
   "silence": "Roäc 久久不語，只好由他去了。",
   "noCounsel": "Roäc 找不到答案（CLI 以代碼 {ending} 結束）。",
-  "surrender": "CLI 放棄了。"
+  "surrender": "CLI 放棄了。",
+  "packUnopenable": "{what} 讀不了（{trouble}）。",
+  "packNotAZip": "這個角色包打不開（{trouble}）。",
+  "packNoManifest": "這個角色包裡沒有 roac-pack.json。",
+  "packUnreadableManifest": "這個角色包的 roac-pack.json 讀不了（{trouble}）。",
+  "packNotAManifest": "這個角色包的 roac-pack.json 不是一份清單。",
+  "packWrongFormat": "這個角色包用的是 {found} 版格式，這隻 Roäc 只讀 {readable} 版。",
+  "packNoFrameSize": "這個角色包沒說一格畫面多大。",
+  "packZeroFrame": "這個角色包給的畫格根本沒有大小。",
+  "packNoGaits": "這個角色包沒有列出任何動作。",
+  "packNoKnownGaits": "這個角色包畫的動作，Roäc 一個也不會。",
+  "packNoDescription": "這個角色包的 {gait} 沒有說明。",
+  "packNoFrameCount": "這個角色包的 {gait} 沒有畫格。",
+  "packUnreadableOrder": "這個角色包的 {gait} 沒說畫格照什麼順序播。",
+  "packEmptyOrder": "這個角色包的 {gait} 一格也不播。",
+  "packUndrawnFrame": "這個角色包的 {gait} 要播一格它沒畫的畫面。",
+  "packNoTiming": "這個角色包的 {gait} 要播好幾格，卻沒說靠什麼推進——給它 msPerFrame 或 pxPerFrame。",
+  "packTwoTimings": "這個角色包的 {gait} 同時給了 msPerFrame 和 pxPerFrame，只能給一個。",
+  "packMissingStrip": "這個角色包的 {gait} 指名 {image}，但包裡沒有這個檔案。",
+  "packSmallStrip": "這個角色包的 {gait} 說有 {frames} 格、每格 {wide} × {high}，但 {image} 只有 {actuallyWide} × {actuallyHigh}。"
 }

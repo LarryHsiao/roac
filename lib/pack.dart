@@ -74,9 +74,9 @@ final class _Found<T> extends _Read<T> {
 
 /// Why nothing was.
 final class _Fault<T> extends _Read<T> {
-  const _Fault(this.reason);
+  const _Fault(this.flaw);
 
-  final String reason;
+  final Flaw flaw;
 }
 
 /// The pack the environment asks for, read from wherever packs are kept.
@@ -103,8 +103,162 @@ Future<Pack?> packWornIn(Map<String, String> environment) async {
     // The listing is inside this too, not only the reading. A folder that
     // goes away between the asking and the looking would otherwise throw
     // past every sentence this was written to give.
-    return Unreadable('${chosen ?? kept.path} could not be read ($trouble).');
+    return Unreadable(
+      Unopenable(
+        chosen == null ? kept.path : '${kept.path}/$chosen',
+        '$trouble',
+      ),
+    );
   }
+}
+
+/// What is wrong with a pack.
+///
+/// Named rather than written out, so the sentence can be said in the reader's
+/// own tongue. A loader has no business composing English.
+@immutable
+sealed class Flaw {
+  const Flaw();
+}
+
+/// [what] could not be read at all — a folder that went away, a file that
+/// would not open. Always a whole path, never a bare name: a message naming
+/// only `broken.zip` cannot tell anyone which folder to look in. [trouble] is
+/// what the system said about it, in its own words.
+final class Unopenable extends Flaw {
+  const Unopenable(this.what, this.trouble);
+
+  final String what;
+  final String trouble;
+}
+
+/// The bytes are not a zip. [trouble] is what the decoder said.
+final class NotAZip extends Flaw {
+  const NotAZip(this.trouble);
+
+  final String trouble;
+}
+
+/// The zip holds no manifest.
+final class NoManifest extends Flaw {
+  const NoManifest();
+}
+
+/// The manifest is there but will not decode. [trouble] is what JSON said.
+final class UnreadableManifest extends Flaw {
+  const UnreadableManifest(this.trouble);
+
+  final String trouble;
+}
+
+/// The manifest decoded to something that is not a manifest.
+final class NotAManifest extends Flaw {
+  const NotAManifest();
+}
+
+/// The pack is written in a format this Roäc does not read.
+final class WrongFormat extends Flaw {
+  const WrongFormat(this.found, this.readable);
+
+  /// What the manifest said, whatever it said — a pack may name anything.
+  final String found;
+  final int readable;
+}
+
+/// The manifest says nothing of how large a frame is.
+final class NoFrameSize extends Flaw {
+  const NoFrameSize();
+}
+
+/// The manifest gives a frame a size, and gives it as nothing.
+final class ZeroFrame extends Flaw {
+  const ZeroFrame();
+}
+
+/// The manifest names no gaits.
+final class NoGaits extends Flaw {
+  const NoGaits();
+}
+
+/// The manifest names gaits, but none that Roäc has.
+final class NoKnownGaits extends Flaw {
+  const NoKnownGaits();
+}
+
+/// [gait] is named but not described.
+final class NoDescription extends Flaw {
+  const NoDescription(this.gait);
+
+  final String gait;
+}
+
+/// [gait] says nothing usable of how many frames it is drawn in.
+final class NoFrameCount extends Flaw {
+  const NoFrameCount(this.gait);
+
+  final String gait;
+}
+
+/// [gait] gives an order that is not an order at all.
+final class UnreadableOrder extends Flaw {
+  const UnreadableOrder(this.gait);
+
+  final String gait;
+}
+
+/// [gait] gives an order, and the order is empty.
+final class EmptyOrder extends Flaw {
+  const EmptyOrder(this.gait);
+
+  final String gait;
+}
+
+/// [gait] plays a frame it does not draw.
+final class UndrawnFrame extends Flaw {
+  const UndrawnFrame(this.gait);
+
+  final String gait;
+}
+
+/// [gait] plays several frames and says nothing of what carries them on.
+final class NoTiming extends Flaw {
+  const NoTiming(this.gait);
+
+  final String gait;
+}
+
+/// [gait] gives both a time and a distance, where it must give one.
+final class TwoTimings extends Flaw {
+  const TwoTimings(this.gait);
+
+  final String gait;
+}
+
+/// [gait] names a strip the pack does not hold.
+final class MissingStrip extends Flaw {
+  const MissingStrip(this.gait, this.image);
+
+  final String gait;
+  final String image;
+}
+
+/// [gait]'s strip is smaller than the frames it claims to hold.
+final class SmallStrip extends Flaw {
+  const SmallStrip({
+    required this.gait,
+    required this.image,
+    required this.frames,
+    required this.wanted,
+    required this.actual,
+  });
+
+  final String gait;
+  final String image;
+  final int frames;
+
+  /// How large one frame was said to be, and how large the strip truly is.
+  final ui.Size wanted;
+  final ui.Size actual;
 }
 
 /// What was made of a pack.
@@ -137,9 +291,9 @@ final class Character extends Pack {
 /// Why a pack could not be worn — said plainly rather than swallowed, because
 /// somebody paid for it and deserves to know what is wrong with it.
 final class Unreadable extends Pack {
-  const Unreadable(this.reason);
+  const Unreadable(this.flaw);
 
-  final String reason;
+  final Flaw flaw;
 }
 
 /// One way of standing: the strip it is drawn on, the order its frames are
@@ -178,13 +332,13 @@ Future<Pack> packFrom(Uint8List bytes) async {
   try {
     final zip = ZipDecoder().decodeBytes(bytes);
     switch (_manifestIn(zip)) {
-      case _Fault(:final reason):
-        return Unreadable(reason);
+      case _Fault(:final flaw):
+        return Unreadable(flaw);
       case _Found(:final it):
         return await _characterFrom(it, zip);
     }
   } catch (trouble) {
-    return Unreadable('That pack could not be opened ($trouble).');
+    return Unreadable(NotAZip('$trouble'));
   }
 }
 
@@ -192,23 +346,20 @@ Future<Pack> packFrom(Uint8List bytes) async {
 _Read<Map<String, dynamic>> _manifestIn(Archive zip) {
   final file = zip.findFile(manifestName);
   if (file == null) {
-    return _Fault('That pack has no $manifestName in it.');
+    return const _Fault(NoManifest());
   }
   final Object? decoded;
   try {
     decoded = jsonDecode(utf8.decode(file.content as List<int>));
   } catch (trouble) {
-    return _Fault('That pack\'s $manifestName is not readable ($trouble).');
+    return _Fault(UnreadableManifest('$trouble'));
   }
   if (decoded is! Map<String, dynamic>) {
-    return _Fault('That pack\'s $manifestName is not a manifest.');
+    return const _Fault(NotAManifest());
   }
   final format = decoded['format'];
   if (format != readableFormat) {
-    return _Fault(
-      'That pack is written in format $format; this Roäc reads '
-      '$readableFormat.',
-    );
+    return _Fault(WrongFormat('$format', readableFormat));
   }
   return _Found(decoded);
 }
@@ -216,20 +367,20 @@ _Read<Map<String, dynamic>> _manifestIn(Archive zip) {
 Future<Pack> _characterFrom(Map<String, dynamic> manifest, Archive zip) async {
   final frame = manifest['frame'];
   if (frame is! Map || frame['width'] is! num || frame['height'] is! num) {
-    return const Unreadable('That pack does not say how large a frame is.');
+    return const Unreadable(NoFrameSize());
   }
   final gaits = manifest['gaits'];
   if (gaits is! Map) {
-    return const Unreadable('That pack names no gaits.');
+    return const Unreadable(NoGaits());
   }
   final width = (frame['width'] as num).toDouble();
   final height = (frame['height'] as num).toDouble();
   if (width <= 0 || height <= 0) {
-    return const Unreadable('That pack gives its frames no size at all.');
+    return const Unreadable(ZeroFrame());
   }
   switch (await _allPosesIn(gaits, zip, ui.Size(width, height))) {
-    case _Fault(:final reason):
-      return Unreadable(reason);
+    case _Fault(:final flaw):
+      return Unreadable(flaw);
     case _Found(:final it):
       return Character(
         name: '${manifest['name'] ?? 'a nameless character'}',
@@ -252,14 +403,14 @@ Future<_Read<Map<Gait, Poses>>> _allPosesIn(
     final given = gaits[named.key];
     if (given == null) continue;
     switch (await _posesFrom(given, zip, named.key, frame)) {
-      case _Fault(:final reason):
-        return _Fault(reason);
+      case _Fault(:final flaw):
+        return _Fault(flaw);
       case _Found(:final it):
         poses[named.value] = it;
     }
   }
   if (poses.isEmpty) {
-    return const _Fault('That pack draws none of the gaits Roäc has.');
+    return const _Fault(NoKnownGaits());
   }
   return _Found(poses);
 }
@@ -270,21 +421,21 @@ Future<_Read<Poses>> _posesFrom(
   String gait,
   ui.Size frame,
 ) async {
-  if (named is! Map) return _Fault('That pack\'s $gait is not described.');
+  if (named is! Map) return _Fault(NoDescription(gait));
   final frames = named['frames'];
   if (frames is! int || frames < 1) {
-    return _Fault('That pack\'s $gait has no frames.');
+    return _Fault(NoFrameCount(gait));
   }
   final Running running;
   switch (_runningIn(named, gait, frames)) {
-    case _Fault(:final reason):
-      return _Fault(reason);
+    case _Fault(:final flaw):
+      return _Fault(flaw);
     case _Found(:final it):
       running = it;
   }
   switch (await _stripFor(named, zip, gait, frame, frames)) {
-    case _Fault(:final reason):
-      return _Fault(reason);
+    case _Fault(:final flaw):
+      return _Fault(flaw);
     case _Found(:final it):
       return _Found(
         Poses(
@@ -304,16 +455,16 @@ typedef Running = ({List<int> sequence, int? everyMs, int? everyPx});
 /// [named]'s running, read and agreed, or the reason it is neither.
 _Read<Running> _runningIn(Map named, String gait, int frames) {
   final List<int> sequence;
-  switch (_sequenceIn(named['sequence'], frames)) {
-    case _Fault(:final reason):
-      return _Fault('That pack\'s $gait $reason.');
+  switch (_sequenceIn(named['sequence'], frames, gait)) {
+    case _Fault(:final flaw):
+      return _Fault(flaw);
     case _Found(:final it):
       sequence = it;
   }
   final everyMs = _whole(named['msPerFrame']);
   final everyPx = _whole(named['pxPerFrame']);
   final timing = _timingRead(everyMs, everyPx, sequence, gait);
-  if (timing != null) return _Fault(timing.reason);
+  if (timing != null) return _Fault(timing.flaw);
   return _Found((sequence: sequence, everyMs: everyMs, everyPx: everyPx));
 }
 
@@ -328,16 +479,18 @@ Future<_Read<ui.Image>> _stripFor(
 ) async {
   final image = zip.findFile('${named['image']}');
   if (image == null) {
-    return _Fault(
-      'That pack\'s $gait names ${named['image']}, which is not in it.',
-    );
+    return _Fault(MissingStrip(gait, '${named['image']}'));
   }
   final strip = await _decode(Uint8List.fromList(image.content as List<int>));
   if (strip.width < frame.width * frames || strip.height < frame.height) {
     return _Fault(
-      'That pack\'s $gait says $frames frames of ${frame.width.toInt()} by '
-      '${frame.height.toInt()}, but ${named['image']} is only '
-      '${strip.width} by ${strip.height}.',
+      SmallStrip(
+        gait: gait,
+        image: '${named['image']}',
+        frames: frames,
+        wanted: frame,
+        actual: ui.Size(strip.width.toDouble(), strip.height.toDouble()),
+      ),
     );
   }
   return _Found(strip);
@@ -363,33 +516,27 @@ _Fault<Running>? _timingRead(
 ) {
   if (sequence.length < 2) return null;
   if (ms == null && px == null) {
-    return _Fault(
-      'That pack\'s $gait plays several frames but says nothing of what '
-      'carries them on — give it msPerFrame or pxPerFrame.',
-    );
+    return _Fault(NoTiming(gait));
   }
   if (ms != null && px != null) {
-    return _Fault(
-      'That pack\'s $gait gives both msPerFrame and pxPerFrame; it must give '
-      'one or the other.',
-    );
+    return _Fault(TwoTimings(gait));
   }
   return null;
 }
 
-/// The order the frames play in, or a phrase saying what is wrong with it.
+/// The order the frames play in, or what is wrong with the order given.
 /// Absent, the frames simply play in the order they were drawn.
-_Read<List<int>> _sequenceIn(Object? given, int frames) {
+_Read<List<int>> _sequenceIn(Object? given, int frames, String gait) {
   if (given == null) {
     return _Found([for (var frame = 0; frame < frames; frame++) frame]);
   }
-  if (given is! List) return const _Fault('names no order its frames play in');
-  if (given.isEmpty) return const _Fault('plays no frames at all');
+  if (given is! List) return _Fault(UnreadableOrder(gait));
+  if (given.isEmpty) return _Fault(EmptyOrder(gait));
   final sequence = <int>[];
   for (final step in given) {
     final at = _whole(step);
     if (at == null || at < 0 || at >= frames) {
-      return const _Fault('plays a frame it does not draw');
+      return _Fault(UndrawnFrame(gait));
     }
     sequence.add(at);
   }

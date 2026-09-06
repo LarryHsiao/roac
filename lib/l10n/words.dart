@@ -144,6 +144,128 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'The CLI gave up.'**
   String get surrender;
+
+  /// A flaw in a character pack: Unopenable.
+  ///
+  /// In en, this message translates to:
+  /// **'{what} could not be read ({trouble}).'**
+  String packUnopenable(String what, String trouble);
+
+  /// A flaw in a character pack: NotAZip.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack could not be opened ({trouble}).'**
+  String packNotAZip(String trouble);
+
+  /// A flaw in a character pack: NoManifest.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack has no roac-pack.json in it.'**
+  String get packNoManifest;
+
+  /// A flaw in a character pack: UnreadableManifest.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s roac-pack.json is not readable ({trouble}).'**
+  String packUnreadableManifest(String trouble);
+
+  /// A flaw in a character pack: NotAManifest.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s roac-pack.json is not a manifest.'**
+  String get packNotAManifest;
+
+  /// A flaw in a character pack: WrongFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack is written in format {found}; this Roäc reads {readable}.'**
+  String packWrongFormat(String found, int readable);
+
+  /// A flaw in a character pack: NoFrameSize.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack does not say how large a frame is.'**
+  String get packNoFrameSize;
+
+  /// A flaw in a character pack: EmptyFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack gives its frames no size at all.'**
+  String get packZeroFrame;
+
+  /// A flaw in a character pack: NoGaits.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack names no gaits.'**
+  String get packNoGaits;
+
+  /// A flaw in a character pack: NoKnownGaits.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack draws none of the gaits Roäc has.'**
+  String get packNoKnownGaits;
+
+  /// A flaw in a character pack: NoDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} is not described.'**
+  String packNoDescription(String gait);
+
+  /// A flaw in a character pack: NoFrames.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} has no frames.'**
+  String packNoFrameCount(String gait);
+
+  /// A flaw in a character pack: NoOrder.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} names no order its frames play in.'**
+  String packUnreadableOrder(String gait);
+
+  /// A flaw in a character pack: NoPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} plays no frames at all.'**
+  String packEmptyOrder(String gait);
+
+  /// A flaw in a character pack: UndrawnFrame.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} plays a frame it does not draw.'**
+  String packUndrawnFrame(String gait);
+
+  /// A flaw in a character pack: NoTiming.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} plays several frames but says nothing of what carries them on — give it msPerFrame or pxPerFrame.'**
+  String packNoTiming(String gait);
+
+  /// A flaw in a character pack: TwoTimings.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} gives both msPerFrame and pxPerFrame; it must give one or the other.'**
+  String packTwoTimings(String gait);
+
+  /// A flaw in a character pack: MissingStrip.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} names {image}, which is not in it.'**
+  String packMissingStrip(String gait, String image);
+
+  /// A flaw in a character pack: SmallStrip.
+  ///
+  /// In en, this message translates to:
+  /// **'That pack\'s {gait} says {frames} frames of {wide} by {high}, but {image} is only {actuallyWide} by {actuallyHigh}.'**
+  String packSmallStrip(
+    String gait,
+    String image,
+    int frames,
+    int wide,
+    int high,
+    int actuallyWide,
+    int actuallyHigh,
+  );
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {

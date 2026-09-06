@@ -13,6 +13,7 @@ import 'l10n/words.dart';
 import 'latch.dart';
 import 'pack.dart';
 import 'roaming.dart';
+import 'saying.dart';
 import 'sprite.dart';
 
 Future<void> main() async {
@@ -226,10 +227,10 @@ class _PerchState extends State<Perch> with WindowListener {
     switch (pack) {
       case null:
         return;
-      case Unreadable(:final reason):
+      case Unreadable(:final flaw):
         FlutterError.reportError(
           FlutterErrorDetails(
-            exception: reason,
+            exception: saidOfFlaw(Words.of(context), flaw),
             library: 'roac',
             context: ErrorDescription('wearing a character pack'),
           ),

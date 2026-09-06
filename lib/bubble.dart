@@ -7,19 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'counsel.dart';
 import 'l10n/words.dart';
-
-/// What a [trouble] says, in the reader's own tongue.
-///
-/// A complaint from the CLI or the shell is the exception: it is passed on in
-/// its own words, whatever those are. They were not written by Roäc and are
-/// not his to translate.
-String _saidPlainly(Words tongue, Trouble trouble) => switch (trouble) {
-  NoQuestion() => tongue.noQuestion,
-  Silence() => tongue.silence,
-  NoCounsel(:final ending) => tongue.noCounsel(ending),
-  Surrender() => tongue.surrender,
-  Complaint(:final words) => words,
-};
+import 'saying.dart';
 
 /// How a link is followed — named so a test may stand in for the browser, in
 /// the same shape as the shell and the counsel this app already stands in for.
@@ -135,7 +123,7 @@ class _Said extends StatelessWidget {
         onWanting: onWanting,
       ),
       final Trouble trouble => _Plain(
-        words: _saidPlainly(tongue, trouble),
+        words: saidOfTrouble(tongue, trouble),
         colour: _alarm,
       ),
     };

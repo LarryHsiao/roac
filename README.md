@@ -43,7 +43,7 @@ configuration file — the environment is the whole of it.
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 109 tests
+flutter test                  # 116 tests
 flutter analyze
 ```
 
@@ -75,6 +75,7 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/roaming.dart` | `Gait`, `Facing`, `Stance`, and the pure geometry: where the mascot may stand on its display, and how a window is put back whole when the desktop has squashed it |
 | `lib/sprite.dart` | The raven and its three looks — breathing at rest, hopping and leaning while walking, still with its eye shut when pinned. All drawn, no art assets |
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
+| `lib/saying.dart` | The one place a named cause becomes a sentence. Everything else names what went wrong and carries the values |
 | `lib/l10n/` | The words Roäc speaks. `app_en.arb` and `app_zh.arb` are written by hand; `words*.dart` beside them are generated from those and committed, so a fresh clone analyses and tests without a generation step |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |
 | `lib/pack.dart` | The character-pack format and its loader: reads a pack zip, or says plainly why it will not |
@@ -112,11 +113,22 @@ A complaint from the CLI or the shell passes through in its own words for the
 same reason — `Complaint` in `lib/counsel.dart` is the trouble that carries
 foreign words, and the only one the render does not translate.
 
-Roäc's own troubles do not travel as sentences. `Trouble` is a sealed set
-naming *what went wrong* — nothing was asked, the CLI fell silent, it ended
-with only a code — and `saidPlainly` in `lib/bubble.dart` says each in the
-reader's tongue. A file that talks to a subprocess has no business composing
-English.
+Roäc's own troubles do not travel as sentences. `Trouble` in
+`lib/counsel.dart` and `Flaw` in `lib/pack.dart` are sealed sets naming *what
+went wrong* — nothing was asked, the CLI fell silent, a pack names a strip it
+does not hold — each carrying the values its sentence needs. `lib/saying.dart`
+is the one place that turns a named cause into a sentence, and the only place
+that knows a reader's tongue at all. A file that talks to a subprocess, or
+reads a stranger's zip, has no business composing English.
+
+Because both sets are `sealed`, adding a cause without a sentence for it is a
+compile error rather than a blank line at run time.
+
+**One caveat about the pack flaws.** They are handed to
+`FlutterError.reportError`, which reaches a debug console and nothing else. A
+release build has no console, so today a person who installs a bad pack sees
+the built-in bird and no explanation. The sentences exist and are translated;
+what is missing is a place to show them.
 
 To see either tongue without changing your system, launch him with one named:
 

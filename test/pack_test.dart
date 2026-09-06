@@ -151,34 +151,36 @@ void main() {
   });
 
   group('a pack that is not', () {
-    Future<String> refusalOf(Future<Uint8List> bytes) async =>
-        ((await packFrom(await bytes)) as Unreadable).reason;
+    // What the pack was refused *for*, named rather than written out: the
+    // sentence is said elsewhere, in whatever tongue the reader has.
+    Future<Flaw> refusalOf(Future<Uint8List> bytes) async =>
+        ((await packFrom(await bytes)) as Unreadable).flaw;
 
     test('with no manifest at all', () async {
-      final said = await refusalOf(packOf(null, withManifest: false));
-      expect(said, contains(manifestName));
+      final flaw = await refusalOf(packOf(null, withManifest: false));
+      expect(flaw, isA<NoManifest>());
     });
 
     test('with a manifest that is not JSON', () async {
-      final said = await refusalOf(packOf('this is not a manifest'));
-      expect(said, contains('not readable'));
+      final flaw = await refusalOf(packOf('this is not a manifest'));
+      expect(flaw, isA<UnreadableManifest>());
     });
 
     test('written in a format this Roäc does not read', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf({...wellFormed(), 'format': readableFormat + 1}),
       );
-      expect(said, contains('format'));
+      expect(flaw, isA<WrongFormat>());
     });
 
     test('that does not say how large a frame is', () async {
       final manifest = wellFormed()..remove('frame');
-      final said = await refusalOf(packOf(manifest));
-      expect(said, contains('how large a frame is'));
+      final flaw = await refusalOf(packOf(manifest));
+      expect(flaw, isA<NoFrameSize>());
     });
 
     test('naming an image it does not carry', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -187,11 +189,14 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('missing.png'));
+      expect(
+        flaw,
+        isA<MissingStrip>().having((f) => f.image, 'image', 'missing.png'),
+      );
     });
 
     test('playing a frame it does not draw', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -204,14 +209,14 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('does not draw'));
+      expect(flaw, isA<UndrawnFrame>());
     });
 
     test('drawing none of the gaits Roäc has', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(wellFormed(gaits: {'flying': <String, Object?>{}})),
       );
-      expect(said, contains('none of the gaits'));
+      expect(flaw, isA<NoKnownGaits>());
     });
 
     // Bytes that are not a zip decode as an archive holding nothing, rather
@@ -242,7 +247,7 @@ void main() {
     );
 
     test('saying nothing of what carries its frames on', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -251,11 +256,11 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('carries them on'));
+      expect(flaw, isA<NoTiming>());
     });
 
     test('saying both what carries them on', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -269,11 +274,11 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('one or the other'));
+      expect(flaw, isA<TwoTimings>());
     });
 
     test('whose strip is smaller than the frames it claims', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf({
           ...wellFormed(
             gaits: {
@@ -283,23 +288,23 @@ void main() {
           'frame': {'width': 100, 'height': 100},
         }),
       );
-      expect(said, contains('is only'));
+      expect(flaw, isA<SmallStrip>());
     });
 
     test('whose gaits are not a map at all', () async {
-      final said = await refusalOf(packOf(wellFormed(gaits: 'idle')));
-      expect(said, contains('names no gaits'));
+      final flaw = await refusalOf(packOf(wellFormed(gaits: 'idle')));
+      expect(flaw, isA<NoGaits>());
     });
 
     test('whose gait is not described', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(wellFormed(gaits: {'idle': 'four frames or so'})),
       );
-      expect(said, contains('not described'));
+      expect(flaw, isA<NoDescription>());
     });
 
     test('whose frame count is not a count', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -308,31 +313,31 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('no frames'));
+      expect(flaw, isA<NoFrameCount>());
     });
 
     test('whose frame size is not a size', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf({
           ...wellFormed(),
           'frame': {'width': 'wide', 'height': 2},
         }),
       );
-      expect(said, contains('how large a frame is'));
+      expect(flaw, isA<NoFrameSize>());
     });
 
     test('whose frame size is nothing at all', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf({
           ...wellFormed(),
           'frame': {'width': 0, 'height': 2},
         }),
       );
-      expect(said, contains('no size at all'));
+      expect(flaw, isA<ZeroFrame>());
     });
 
     test('whose sequence is not a list', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -341,11 +346,11 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('names no order'));
+      expect(flaw, isA<UnreadableOrder>());
     });
 
     test('whose sequence plays nothing', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         packOf(
           wellFormed(
             gaits: {
@@ -354,14 +359,14 @@ void main() {
           ),
         ),
       );
-      expect(said, contains('plays no frames at all'));
+      expect(flaw, isA<EmptyOrder>());
     });
 
     test('that is not a zip at all', () async {
-      final said = await refusalOf(
+      final flaw = await refusalOf(
         Future.value(Uint8List.fromList(utf8.encode('not a zip'))),
       );
-      expect(said, contains(manifestName));
+      expect(flaw, isA<NoManifest>());
     });
   });
 
@@ -513,6 +518,22 @@ void main() {
       final worn = await packWornIn({'ROAC_PACKS': kept.path});
 
       expect(worn, isA<Unreadable>());
+    });
+
+    test('names the whole path when a chosen pack will not open', () async {
+      // Sorted first so it is the one chosen, and shut so that opening it
+      // throws. A message naming only the file would not say where it lives.
+      final expected = '${kept.path}/aaa.zip';
+      await File(expected).writeAsString('never mind the bytes');
+      await Process.run('chmod', ['000', expected]);
+      addTearDown(() => Process.runSync('chmod', ['644', expected]));
+
+      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+
+      expect(
+        (worn! as Unreadable).flaw,
+        isA<Unopenable>().having((f) => f.what, 'what', expected),
+      );
     });
   });
 }

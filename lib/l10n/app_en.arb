@@ -1,46 +1,208 @@
 {
   "@@locale": "en",
-
   "thinking": "Roäc is thinking…",
   "@thinking": {
     "description": "Shown in the bubble while the CLI is being waited on."
   },
-
   "invitation": "Ask me what you have written down.",
   "@invitation": {
     "description": "Shown in the bubble before anything has been asked."
   },
-
   "askHint": "Ask Roäc…",
   "@askHint": {
     "description": "The placeholder in the field a question is typed into."
   },
-
   "linkCopied": "That link would not open. Its address is on your clipboard.",
   "@linkCopied": {
     "description": "Said when a link in an answer cannot be opened, so its address was put on the clipboard instead."
   },
-
   "noQuestion": "Ask me something.",
   "@noQuestion": {
     "description": "Said when the question put to Roäc was empty."
   },
-
   "silence": "Roäc fell silent, and was let go.",
   "@silence": {
     "description": "Said when the CLI stopped speaking for so long it was killed."
   },
-
   "noCounsel": "Roäc found no counsel (the CLI exited {ending}).",
   "@noCounsel": {
     "description": "Said when the CLI ended without a last word and complained of nothing, leaving only its exit code.",
     "placeholders": {
-      "ending": { "type": "int" }
+      "ending": {
+        "type": "int"
+      }
     }
   },
-
   "surrender": "The CLI gave up.",
   "@surrender": {
     "description": "Said when the CLI reported a failure but named nothing that went wrong."
+  },
+  "packUnopenable": "{what} could not be read ({trouble}).",
+  "@packUnopenable": {
+    "description": "A flaw in a character pack: Unopenable.",
+    "placeholders": {
+      "what": {
+        "type": "String"
+      },
+      "trouble": {
+        "type": "String"
+      }
+    }
+  },
+  "packNotAZip": "That pack could not be opened ({trouble}).",
+  "@packNotAZip": {
+    "description": "A flaw in a character pack: NotAZip.",
+    "placeholders": {
+      "trouble": {
+        "type": "String"
+      }
+    }
+  },
+  "packNoManifest": "That pack has no roac-pack.json in it.",
+  "@packNoManifest": {
+    "description": "A flaw in a character pack: NoManifest."
+  },
+  "packUnreadableManifest": "That pack's roac-pack.json is not readable ({trouble}).",
+  "@packUnreadableManifest": {
+    "description": "A flaw in a character pack: UnreadableManifest.",
+    "placeholders": {
+      "trouble": {
+        "type": "String"
+      }
+    }
+  },
+  "packNotAManifest": "That pack's roac-pack.json is not a manifest.",
+  "@packNotAManifest": {
+    "description": "A flaw in a character pack: NotAManifest."
+  },
+  "packWrongFormat": "That pack is written in format {found}; this Roäc reads {readable}.",
+  "@packWrongFormat": {
+    "description": "A flaw in a character pack: WrongFormat.",
+    "placeholders": {
+      "found": {
+        "type": "String"
+      },
+      "readable": {
+        "type": "int"
+      }
+    }
+  },
+  "packNoFrameSize": "That pack does not say how large a frame is.",
+  "@packNoFrameSize": {
+    "description": "A flaw in a character pack: NoFrameSize."
+  },
+  "packZeroFrame": "That pack gives its frames no size at all.",
+  "@packZeroFrame": {
+    "description": "A flaw in a character pack: EmptyFrame."
+  },
+  "packNoGaits": "That pack names no gaits.",
+  "@packNoGaits": {
+    "description": "A flaw in a character pack: NoGaits."
+  },
+  "packNoKnownGaits": "That pack draws none of the gaits Roäc has.",
+  "@packNoKnownGaits": {
+    "description": "A flaw in a character pack: NoKnownGaits."
+  },
+  "packNoDescription": "That pack's {gait} is not described.",
+  "@packNoDescription": {
+    "description": "A flaw in a character pack: NoDescription.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packNoFrameCount": "That pack's {gait} has no frames.",
+  "@packNoFrameCount": {
+    "description": "A flaw in a character pack: NoFrames.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packUnreadableOrder": "That pack's {gait} names no order its frames play in.",
+  "@packUnreadableOrder": {
+    "description": "A flaw in a character pack: NoOrder.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packEmptyOrder": "That pack's {gait} plays no frames at all.",
+  "@packEmptyOrder": {
+    "description": "A flaw in a character pack: NoPlay.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packUndrawnFrame": "That pack's {gait} plays a frame it does not draw.",
+  "@packUndrawnFrame": {
+    "description": "A flaw in a character pack: UndrawnFrame.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packNoTiming": "That pack's {gait} plays several frames but says nothing of what carries them on — give it msPerFrame or pxPerFrame.",
+  "@packNoTiming": {
+    "description": "A flaw in a character pack: NoTiming.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packTwoTimings": "That pack's {gait} gives both msPerFrame and pxPerFrame; it must give one or the other.",
+  "@packTwoTimings": {
+    "description": "A flaw in a character pack: TwoTimings.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      }
+    }
+  },
+  "packMissingStrip": "That pack's {gait} names {image}, which is not in it.",
+  "@packMissingStrip": {
+    "description": "A flaw in a character pack: MissingStrip.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      },
+      "image": {
+        "type": "String"
+      }
+    }
+  },
+  "packSmallStrip": "That pack's {gait} says {frames} frames of {wide} by {high}, but {image} is only {actuallyWide} by {actuallyHigh}.",
+  "@packSmallStrip": {
+    "description": "A flaw in a character pack: SmallStrip.",
+    "placeholders": {
+      "gait": {
+        "type": "String"
+      },
+      "image": {
+        "type": "String"
+      },
+      "frames": {
+        "type": "int"
+      },
+      "wide": {
+        "type": "int"
+      },
+      "high": {
+        "type": "int"
+      },
+      "actuallyWide": {
+        "type": "int"
+      },
+      "actuallyHigh": {
+        "type": "int"
+      }
+    }
   }
 }
