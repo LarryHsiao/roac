@@ -257,6 +257,22 @@ cp packs/roac-raven.zip ~/Library/Application\ Support/roac/packs/   # macOS
 Copy-Item packs\roac-raven.zip $env:APPDATA\roac\packs\              # Windows
 ```
 
+## The app icon
+
+Also drawn rather than shipped as a separate picture — `paintRoac` is the one
+door either goes through, so the icon can never drift out of step with the
+bird on screen. `tool/make_icon.dart` writes both platforms' icons at once:
+
+```sh
+flutter test tool/make_icon.dart
+```
+
+It writes every PNG size macOS's `AppIcon.appiconset` names, and assembles a
+Windows `.ico` by hand — modern Windows reads a PNG straight out of an icon
+directory entry, so the tool never re-encodes to BMP. Both are committed, the
+same reasoning as the pack: a fresh clone builds with an icon already in
+place, no generation step of its own.
+
 ## Two decisions not to undo by accident
 
 **The macOS app sandbox is deliberately absent** from both
