@@ -35,11 +35,13 @@
   "notesLabel": "筆記",
   "packsLabel": "角色包",
   "characterLabel": "角色",
+  "claudeConfigLabel": "Claude 設定",
   "choose": "選擇…",
   "toldByFile": "由設定檔指定",
   "toldByDefault": "內建的預設值",
   "setByEnvironment": "由 {name} 指定",
   "drawnCharacter": "Roäc（手繪）",
   "drawnCharacterNoPacks": "Roäc（手繪——尚未安裝角色包）",
+  "claudeConfigUnset": "CLI 本身的設定",
   "settingsUnwritable": "Roäc 的設定存不了（{trouble}）。"
 }

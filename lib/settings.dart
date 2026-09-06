@@ -69,6 +69,7 @@ final class Settings {
     required this.notes,
     required this.packs,
     required this.pack,
+    required this.claudeConfig,
     this.trouble,
   });
 
@@ -81,6 +82,12 @@ final class Settings {
   /// Which pack to wear. Null when nothing names one, which is no failure —
   /// the first by name is then worn, and Roäc draws himself if there is none.
   final Chosen? pack;
+
+  /// The Claude Code config directory the CLI should use, if this machine
+  /// keeps more than one — set as `CLAUDE_CONFIG_DIR` on the CLI's own
+  /// process. Null when nothing names one, which is no failure: the CLI
+  /// falls back on whichever config it would use if Roäc had never asked.
+  final Chosen? claudeConfig;
 
   /// Why the settings file was passed over, where there was one to pass over.
   ///
@@ -125,6 +132,10 @@ Future<Settings> settingsIn(Map<String, String> environment) async {
       '${environment['HOME'] ?? ''}/Library/Application Support/roac/packs',
     ),
     pack: _chosenOrNot(environment['ROAC_PACK'], told['pack']),
+    claudeConfig: _chosenOrNot(
+      environment['ROAC_CLAUDE_CONFIG'],
+      told['claudeConfig'],
+    ),
     trouble: trouble,
   );
 }

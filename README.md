@@ -35,16 +35,22 @@ per platform, plus the interface they share — not third-party weight.
 
 ## What Roäc has been told
 
-Three settings, and three tiers apiece. **An environment variable wins, then
-the settings file, then what he was born knowing.**
+Four settings. **An environment variable wins, then the settings file, then
+what he was born knowing.**
 
 | Setting | Variable | File key | Born knowing |
 |---|---|---|---|
 | Where the notes are | `ROAC_NOTES` | `notes` | `~/Minerva` |
 | Where packs are kept | `ROAC_PACKS` | `packs` | `~/Library/Application Support/roac/packs` |
 | Which pack to wear | `ROAC_PACK` | `pack` | the first by name |
+| Which Claude config the CLI should use | `ROAC_CLAUDE_CONFIG` | `claudeConfig` | nothing — the CLI's own default stands |
 
-Set none of them and Roäc still works.
+Set none of them and Roäc still works. The first three carry all three tiers;
+the fourth carries only two — there is nothing built in to fall back to, since
+most people run one Claude Code config and have no reason to name another.
+Set, it becomes `CLAUDE_CONFIG_DIR` on the CLI's own process — useful on a
+machine that keeps more than one, such as a `claude-personal` alongside the
+default.
 
 The file is `config.json`, beside the packs in
 `~/Library/Application Support/roac`, so that everything Roäc owns is in one
@@ -77,9 +83,11 @@ not worth solving for a fault a hand-edited file is rarely in — but real.
 
 A gear beside the ask field, and `⌘,` besides, open a panel in the bubble's
 own place — the mascot keeps its footing below, exactly as it does under the
-bubble. It shows all three settings and where each was told from, in the same
+bubble. It shows all four settings and where each was told from, in the same
 three colours the tiers carry above: green for an environment variable, amber
-for the file, plain for what Roäc was born knowing.
+for the file, plain for what Roäc was born knowing. The Claude config row has
+no third colour of its own — nothing chosen there shows as the CLI's own
+config, with no tier line beneath it, since there is no tier to name.
 
 Choosing a folder opens the native macOS dialog and writes the choice at once;
 choosing a character re-wears the bird immediately, no restart. A `config.json`
@@ -100,7 +108,7 @@ flutter build macos --debug   # or build, then open build/macos/Build/Products/D
 flutter run -d windows        # the same, on Windows
 flutter build windows --debug # then run build\windows\x64\runner\Debug\roac.exe
 
-flutter test                  # 151 tests
+flutter test                  # 157 tests
 flutter analyze
 ```
 
@@ -288,6 +296,11 @@ what runs.
 or `APPDATA` yet. `summonsFor` reaches Windows correctly once it is *given* a
 notes folder, but nothing today points it at one there without `ROAC_NOTES`
 set by hand.
+
+**`CLAUDE_CONFIG_DIR` is set on the CLI's own process, never Roäc's.**
+`askCounsel` passes it through `Process.start`'s `environment` argument on the
+spawned process alone, so it cannot leak into anything else this app might one
+day run as a subprocess of its own.
 
 ## Testing
 

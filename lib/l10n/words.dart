@@ -315,6 +315,12 @@ abstract class Words {
   /// **'Character'**
   String get characterLabel;
 
+  /// Settings panel: claudeConfigLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Claude config'**
+  String get claudeConfigLabel;
+
   /// Settings panel: choose.
   ///
   /// In en, this message translates to:
@@ -350,6 +356,12 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'Roäc (drawn — no packs installed)'**
   String get drawnCharacterNoPacks;
+
+  /// Settings panel: claudeConfigUnset.
+  ///
+  /// In en, this message translates to:
+  /// **'the CLI\'s own config'**
+  String get claudeConfigUnset;
 
   /// Settings panel: settingsUnwritable.
   ///

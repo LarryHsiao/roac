@@ -157,6 +157,9 @@ class WordsEn extends Words {
   String get characterLabel => 'Character';
 
   @override
+  String get claudeConfigLabel => 'Claude config';
+
+  @override
   String get choose => 'Choose…';
 
   @override
@@ -175,6 +178,9 @@ class WordsEn extends Words {
 
   @override
   String get drawnCharacterNoPacks => 'Roäc (drawn — no packs installed)';
+
+  @override
+  String get claudeConfigUnset => 'the CLI\'s own config';
 
   @override
   String settingsUnwritable(String trouble) {

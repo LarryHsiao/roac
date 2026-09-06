@@ -247,6 +247,10 @@
   "@characterLabel": {
     "description": "Settings panel: characterLabel."
   },
+  "claudeConfigLabel": "Claude config",
+  "@claudeConfigLabel": {
+    "description": "Settings panel: claudeConfigLabel."
+  },
   "choose": "Choose…",
   "@choose": {
     "description": "Settings panel: choose."
@@ -275,6 +279,10 @@
   "drawnCharacterNoPacks": "Roäc (drawn — no packs installed)",
   "@drawnCharacterNoPacks": {
     "description": "Settings panel: drawnCharacterNoPacks."
+  },
+  "claudeConfigUnset": "the CLI's own config",
+  "@claudeConfigUnset": {
+    "description": "Settings panel: claudeConfigUnset."
   },
   "settingsUnwritable": "Roäc's settings could not be saved ({trouble}).",
   "@settingsUnwritable": {

@@ -42,6 +42,7 @@ typedef Shell =
       String executable,
       List<String> arguments, {
       String? workingDirectory,
+      Map<String, String>? environment,
     });
 
 /// What Roäc came back with.
@@ -121,6 +122,12 @@ final class Complaint extends Trouble {
 /// it is not named. It is a parameter so that either summons may be exercised
 /// from either host: a test that could only run on the machine it was written
 /// on would leave the other branch unwatched.
+///
+/// [claudeConfig] names a config directory for the CLI itself to use, for a
+/// machine that keeps more than one — set as `CLAUDE_CONFIG_DIR` on the CLI's
+/// own process rather than Roäc's, so it never leaks into anything else this
+/// app might one day run. Left alone when null: the CLI then falls back on
+/// whichever config it would have used had Roäc never asked.
 Stream<Counsel> askCounsel(
   String question, {
   required String notes,
@@ -128,6 +135,7 @@ Stream<Counsel> askCounsel(
   Shell shell = Process.start,
   Duration silence = _silence,
   bool? onWindows,
+  String? claudeConfig,
 }) {
   final told = StreamController<Counsel>();
   Process? claude;
@@ -148,6 +156,9 @@ Stream<Counsel> askCounsel(
         summons.executable,
         summons.arguments,
         workingDirectory: notes,
+        environment: claudeConfig == null
+            ? null
+            : {'CLAUDE_CONFIG_DIR': claudeConfig},
       );
       await for (final counsel in _listenTo(claude!, silence)) {
         if (told.isClosed) return;

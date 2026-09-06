@@ -154,6 +154,9 @@ class WordsZh extends Words {
   String get characterLabel => '角色';
 
   @override
+  String get claudeConfigLabel => 'Claude 設定';
+
+  @override
   String get choose => '選擇…';
 
   @override
@@ -172,6 +175,9 @@ class WordsZh extends Words {
 
   @override
   String get drawnCharacterNoPacks => 'Roäc（手繪——尚未安裝角色包）';
+
+  @override
+  String get claudeConfigUnset => 'CLI 本身的設定';
 
   @override
   String settingsUnwritable(String trouble) {

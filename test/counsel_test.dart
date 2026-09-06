@@ -89,7 +89,12 @@ const _notes = '/somewhere/notes';
 
 void main() {
   Shell shellOf(_Claude claude) =>
-      (String _, List<String> _, {String? workingDirectory}) async => claude;
+      (
+        String _,
+        List<String> _, {
+        String? workingDirectory,
+        Map<String, String>? environment,
+      }) async => claude;
 
   test(
     'the words arrive a piece at a time, each carrying all said so far',
@@ -128,7 +133,12 @@ void main() {
     late List<String> fresh;
     late List<String> resumed;
     Shell watching(void Function(List<String>) note) =>
-        (String _, List<String> arguments, {String? workingDirectory}) async {
+        (
+          String _,
+          List<String> arguments, {
+          String? workingDirectory,
+          Map<String, String>? environment,
+        }) async {
           note(arguments);
           return _Claude(says: [finished()]);
         };
@@ -172,6 +182,7 @@ void main() {
               String _,
               List<String> arguments, {
               String? workingDirectory,
+              Map<String, String>? environment,
             }) async {
               given = arguments;
               return _Claude(says: [finished()]);
@@ -181,6 +192,56 @@ void main() {
       expect(given.sublist(2), expectedArguments);
     },
   );
+
+  group('which Claude config the CLI itself is given', () {
+    test(
+      'CLAUDE_CONFIG_DIR is set on the CLI, when Roäc is told one',
+      () async {
+        const expected = {'CLAUDE_CONFIG_DIR': '/Users/someone/.claude-work'};
+        Map<String, String>? given;
+
+        await askCounsel(
+          'where?',
+          notes: _notes,
+          claudeConfig: '/Users/someone/.claude-work',
+          shell:
+              (
+                String _,
+                List<String> _, {
+                String? workingDirectory,
+                Map<String, String>? environment,
+              }) async {
+                given = environment;
+                return _Claude(says: [finished()]);
+              },
+        ).drain<void>();
+
+        expect(given, expected);
+      },
+    );
+
+    test('nothing is set when Roäc was told no config at all', () async {
+      const Map<String, String>? expected = null;
+      Map<String, String>? given;
+
+      await askCounsel(
+        'where?',
+        notes: _notes,
+        shell:
+            (
+              String _,
+              List<String> _, {
+              String? workingDirectory,
+              Map<String, String>? environment,
+            }) async {
+              given = environment;
+              return _Claude(says: [finished()]);
+            },
+      ).drain<void>();
+
+      expect(given, expected);
+    });
+  });
 
   group('how the CLI is summoned, machine by machine', () {
     test('Windows is given the CLI itself, with no shell between', () {
@@ -404,8 +465,14 @@ void main() {
       final counsel = await askCounsel(
         'anything',
         notes: _notes,
-        shell: (String _, List<String> _, {String? workingDirectory}) async =>
-            throw const ProcessException('/bin/zsh', [], 'no such shell'),
+        shell:
+            (
+              String _,
+              List<String> _, {
+              String? workingDirectory,
+              Map<String, String>? environment,
+            }) async =>
+                throw const ProcessException('/bin/zsh', [], 'no such shell'),
       ).last;
 
       expect(counsel, isA<Complaint>());
@@ -419,10 +486,16 @@ void main() {
     final counsel = await askCounsel(
       '   ',
       notes: _notes,
-      shell: (String _, List<String> _, {String? workingDirectory}) async {
-        started = true;
-        return _Claude();
-      },
+      shell:
+          (
+            String _,
+            List<String> _, {
+            String? workingDirectory,
+            Map<String, String>? environment,
+          }) async {
+            started = true;
+            return _Claude();
+          },
     ).last;
     final actual = (troubled: counsel is NoQuestion, started: started);
 

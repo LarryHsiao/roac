@@ -326,8 +326,12 @@ class _PerchState extends State<Perch> with WindowListener {
     // with nowhere to run would fail with a complaint about a directory,
     // which says nothing to the person who only asked a question.
     return Stream.fromFuture(_told).asyncExpand(
-      (told) =>
-          askCounsel(question, resuming: resuming, notes: told.notes.value),
+      (told) => askCounsel(
+        question,
+        resuming: resuming,
+        notes: told.notes.value,
+        claudeConfig: told.claudeConfig?.value,
+      ),
     );
   }
 

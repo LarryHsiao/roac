@@ -132,6 +132,19 @@ class SettingsPanel extends StatelessWidget {
                     installed: installedPacks,
                     onChosen: (name) => onChanged('pack', name),
                   ),
+                  const SizedBox(height: _padding),
+                  _Folder(
+                    label: tongue.claudeConfigLabel,
+                    chosen: settings.claudeConfig,
+                    variable: 'ROAC_CLAUDE_CONFIG',
+                    whenUnset: tongue.claudeConfigUnset,
+                    onChoose: () async {
+                      final path = await chooseFolder(
+                        settings.claudeConfig?.value ?? '',
+                      );
+                      if (path != null) onChanged('claudeConfig', path);
+                    },
+                  ),
                   if (trouble != null) ...[
                     const SizedBox(height: _padding),
                     _Trouble(text: saidOfMisread(tongue, trouble)),
@@ -155,21 +168,29 @@ String _toldLine(Words tongue, Told told, String variable) => switch (told) {
 };
 
 /// One folder setting: its value, a way to change it, and where it came from.
+///
+/// [chosen] is null where nothing names one and there is no default to fall
+/// back to — unlike Notes and Packs, which always have one. [whenUnset] is
+/// what the well shows then, and the tier line is left off entirely: there is
+/// no tier to name when nothing was told.
 class _Folder extends StatelessWidget {
   const _Folder({
     required this.label,
     required this.chosen,
     required this.variable,
     required this.onChoose,
+    this.whenUnset,
   });
 
   final String label;
-  final Chosen chosen;
+  final Chosen? chosen;
   final String variable;
   final VoidCallback onChoose;
+  final String? whenUnset;
 
   @override
   Widget build(BuildContext context) {
+    final shown = chosen?.value ?? whenUnset ?? '';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -179,10 +200,10 @@ class _Folder extends StatelessWidget {
           children: [
             Expanded(
               child: Tooltip(
-                message: chosen.value,
+                message: shown,
                 child: _Well(
                   child: Text(
-                    chosen.value,
+                    shown,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
@@ -200,11 +221,13 @@ class _Folder extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 2),
-        Text(
-          _toldLine(Words.of(context), chosen.told, variable),
-          style: const TextStyle(color: _faint, fontSize: 10),
-        ),
+        if (chosen != null) ...[
+          const SizedBox(height: 2),
+          Text(
+            _toldLine(Words.of(context), chosen!.told, variable),
+            style: const TextStyle(color: _faint, fontSize: 10),
+          ),
+        ],
       ],
     );
   }
