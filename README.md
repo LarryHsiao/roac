@@ -33,17 +33,45 @@ client, in an app whose whole claim is that nothing leaves the machine.
 package, and the eight entries it adds to `pubspec.lock` are all its own — one
 per platform, plus the interface they share — not third-party weight.
 
-Roäc reads `~/Minerva` unless the `ROAC_NOTES` environment variable names
-somewhere else. It is derived rather than written into the source, because an
-absolute home path is true on one machine and wrong on every other. There is no
-configuration file — the environment is the whole of it.
+## What Roäc has been told
+
+Three settings, and three tiers apiece. **An environment variable wins, then
+the settings file, then what he was born knowing.**
+
+| Setting | Variable | File key | Born knowing |
+|---|---|---|---|
+| Where the notes are | `ROAC_NOTES` | `notes` | `~/Minerva` |
+| Where packs are kept | `ROAC_PACKS` | `packs` | `~/Library/Application Support/roac/packs` |
+| Which pack to wear | `ROAC_PACK` | `pack` | the first by name |
+
+Set none of them and Roäc still works.
+
+The file is `config.json`, beside the packs in
+`~/Library/Application Support/roac`, so that everything Roäc owns is in one
+place. `ROAC_SETTINGS` names it elsewhere.
+
+```json
+{ "notes": "/Users/you/Notes", "pack": "crow.zip" }
+```
+
+**The file exists because a variable cannot reach a double-clicked app.** A
+windowed macOS app inherits almost no environment — the same reason the CLI is
+run through a login shell — so `export ROAC_NOTES=…` in a shell profile reaches
+Roäc launched from a terminal and never from the Dock. The environment tier is
+kept above it all the same: it is how a test or a single run says something
+without writing it down.
+
+A settings file that is there and will not read is **said aloud rather than
+quietly replaced by the defaults** — somebody wrote it, and would otherwise be
+left wondering why it is ignored. A file that was never written is no fault and
+draws no word.
 
 ## Running
 
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 116 tests
+flutter test                  # 126 tests
 flutter analyze
 ```
 
@@ -75,6 +103,7 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/roaming.dart` | `Gait`, `Facing`, `Stance`, and the pure geometry: where the mascot may stand on its display, and how a window is put back whole when the desktop has squashed it |
 | `lib/sprite.dart` | The raven and its three looks — breathing at rest, hopping and leaning while walking, still with its eye shut when pinned. All drawn, no art assets |
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
+| `lib/settings.dart` | What Roäc has been told: the three tiers, the settings file, and why it could not be used |
 | `lib/saying.dart` | The one place a named cause becomes a sentence. Everything else names what went wrong and carries the values |
 | `lib/l10n/` | The words Roäc speaks. `app_en.arb` and `app_zh.arb` are written by hand; `words*.dart` beside them are generated from those and committed, so a fresh clone analyses and tests without a generation step |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |

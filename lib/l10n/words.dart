@@ -266,6 +266,24 @@ abstract class Words {
     int actuallyWide,
     int actuallyHigh,
   );
+
+  /// Why Roäc's settings file was passed over: Shut.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc\'s settings file is there and will not open ({trouble}). What it says is passed over.'**
+  String settingsShut(String trouble);
+
+  /// Why Roäc's settings file was passed over: NotJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc\'s settings file is not JSON ({trouble}). What it says is passed over.'**
+  String settingsNotJson(String trouble);
+
+  /// Why Roäc's settings file was passed over: NotSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc\'s settings file holds something that is not a set of settings. What it says is passed over.'**
+  String get settingsNotSettings;
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {

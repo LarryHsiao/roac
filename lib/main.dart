@@ -14,6 +14,7 @@ import 'latch.dart';
 import 'pack.dart';
 import 'roaming.dart';
 import 'saying.dart';
+import 'settings.dart';
 import 'sprite.dart';
 
 Future<void> main() async {
@@ -95,13 +96,11 @@ typedef Asking = Stream<Counsel> Function(String question, {String? resuming});
 /// Where the sprite sits: it walks the window across the desktop, carries the
 /// drag and the pin, and keeps the window's transparent margin click-through.
 class Perch extends StatefulWidget {
-  const Perch({
-    this.asking = askCounsel,
-    this.environment = const {},
-    super.key,
-  });
+  const Perch({this.asking, this.environment = const {}, super.key});
 
-  final Asking asking;
+  /// How a question is put. Null in the app, which puts it to the real CLI
+  /// inside whichever notes the settings name; a test stands in its own.
+  final Asking? asking;
 
   /// What the world says about where packs are kept and which to wear. Empty
   /// by default so a test wears nothing it did not put there itself; the app
@@ -164,6 +163,15 @@ class _PerchState extends State<Perch> with WindowListener {
   /// The character being worn, if a pack was found and could be read.
   Character? _worn;
 
+  /// What Roäc has been told about the world, once it has been read.
+  ///
+  /// Begun the moment the perch is raised, and awaited by everything that
+  /// needs it — so there is no instant in which a question could be asked
+  /// with nowhere to ask it. [_settings] is the same thing once it has
+  /// landed, kept for the things that must read it without waiting.
+  late final Future<Settings> _told = settingsIn(widget.environment);
+  Settings? _settings;
+
   /// Every pixel of ground walked since Roäc woke. A packed walk steps by
   /// this rather than by the clock, so the legs keep pace with the body.
   double _walked = 0;
@@ -208,6 +216,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// Reads where the window stands before the first sample, so that no tick
   /// ever tests the cursor or a step against the placeholder bounds.
   Future<void> _comeAlive() async {
+    await _beTold();
     await _wearAPack();
     await _readWindowPlacement();
     if (!mounted) return;
@@ -216,13 +225,50 @@ class _PerchState extends State<Perch> with WindowListener {
     _armSpell();
   }
 
+  /// Reads what Roäc has been told about the world, before anything is done
+  /// that depends on it.
+  ///
+  /// A settings file that will not read is said aloud rather than quietly
+  /// replaced by the defaults: somebody wrote it, and would otherwise be left
+  /// wondering why it is being ignored.
+  Future<void> _beTold() async {
+    final told = await _told;
+    if (!mounted) return;
+    setState(() => _settings = told);
+    final trouble = told.trouble;
+    if (trouble == null) return;
+    FlutterError.reportError(
+      FlutterErrorDetails(
+        exception: saidOfMisread(Words.of(context), trouble),
+        library: 'roac',
+        context: ErrorDescription('reading what Roäc has been told'),
+      ),
+    );
+  }
+
+  /// How a question is put: whatever a test handed over, or the real CLI run
+  /// inside whichever notes Roäc has been told of.
+  Stream<Counsel> _asking(String question, {String? resuming}) {
+    final asking = widget.asking;
+    if (asking != null) return asking(question, resuming: resuming);
+    // Waits on the reading rather than guessing at an empty path. A CLI run
+    // with nowhere to run would fail with a complaint about a directory,
+    // which says nothing to the person who only asked a question.
+    return Stream.fromFuture(_told).asyncExpand(
+      (told) =>
+          askCounsel(question, resuming: resuming, notes: told.notes.value),
+    );
+  }
+
   /// Wears whichever pack the environment asks for, if one can be read.
   ///
   /// A pack that is there and will not read is said aloud rather than passed
   /// over: somebody chose it, and would otherwise be left wondering why they
   /// are looking at the built-in bird.
   Future<void> _wearAPack() async {
-    final pack = await packWornIn(widget.environment);
+    final settings = _settings;
+    if (settings == null) return;
+    final pack = await packWorn(settings.packs.value, settings.pack?.value);
     if (!mounted) return;
     switch (pack) {
       case null:
@@ -453,9 +499,7 @@ class _PerchState extends State<Perch> with WindowListener {
       _waiting = true;
       _counsel = null;
     });
-    _listening = widget
-        .asking(question, resuming: _conversation)
-        .listen(_heard);
+    _listening = _asking(question, resuming: _conversation).listen(_heard);
   }
 
   /// Takes down what Roäc has said so far, and the conversation it belongs to.

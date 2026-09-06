@@ -126,4 +126,18 @@ class WordsEn extends Words {
   ) {
     return 'That pack\'s $gait says $frames frames of $wide by $high, but $image is only $actuallyWide by $actuallyHigh.';
   }
+
+  @override
+  String settingsShut(String trouble) {
+    return 'Roäc\'s settings file is there and will not open ($trouble). What it says is passed over.';
+  }
+
+  @override
+  String settingsNotJson(String trouble) {
+    return 'Roäc\'s settings file is not JSON ($trouble). What it says is passed over.';
+  }
+
+  @override
+  String get settingsNotSettings =>
+      'Roäc\'s settings file holds something that is not a set of settings. What it says is passed over.';
 }

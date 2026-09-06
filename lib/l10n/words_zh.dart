@@ -124,4 +124,17 @@ class WordsZh extends Words {
   ) {
     return '這個角色包的 $gait 說有 $frames 格、每格 $wide × $high，但 $image 只有 $actuallyWide × $actuallyHigh。';
   }
+
+  @override
+  String settingsShut(String trouble) {
+    return 'Roäc 的設定檔在那裡，卻打不開（$trouble）。裡頭寫的一律略過。';
+  }
+
+  @override
+  String settingsNotJson(String trouble) {
+    return 'Roäc 的設定檔不是 JSON（$trouble）。裡頭寫的一律略過。';
+  }
+
+  @override
+  String get settingsNotSettings => 'Roäc 的設定檔裡放的不是一組設定。裡頭寫的一律略過。';
 }

@@ -27,27 +27,14 @@ const gaitNames = {
 /// Roäc that has since learned more.
 const readableFormat = 1;
 
-/// Where character packs are kept.
+/// Which of [packs] to wear, given the one [named] asks for.
 ///
-/// `ROAC_PACKS` if it names anywhere, else the folder macOS keeps an
-/// application's own files in. Derived from the environment for the same
-/// reason the knowledge base is: an absolute home path written into the source
-/// is true on one machine and wrong on every other.
-String packsIn(Map<String, String> environment) {
-  final named = environment['ROAC_PACKS'];
-  if (named != null && named.trim().isNotEmpty) return named;
-  return '${environment['HOME'] ?? ''}/Library/Application Support/roac/packs';
-}
-
-/// Which of [packs] to wear, given what the environment asks for.
-///
-/// `ROAC_PACK` names one outright. Failing that the first by name, so that a
+/// A name that is there is worn. Failing that the first by name, so that a
 /// mascot does not change character because a filesystem listed its files in
 /// a different order today. Null when there are none, which is not a failure
 /// — Roäc draws himself when he is given nobody else to be.
-String? packChosenFrom(List<String> packs, Map<String, String> environment) {
+String? packChosenFrom(List<String> packs, String? named) {
   if (packs.isEmpty) return null;
-  final named = environment['ROAC_PACK'];
   if (named != null && packs.contains(named)) return named;
   final byName = [...packs]..sort();
   return byName.first;
@@ -79,14 +66,14 @@ final class _Fault<T> extends _Read<T> {
   final Flaw flaw;
 }
 
-/// The pack the environment asks for, read from wherever packs are kept.
+/// The pack [named], or the first there is, read from the folder [from].
 ///
 /// Null when there is none to wear, which is no failure: Roäc draws himself
 /// when he is given nobody else to be. A pack that is there but will not be
 /// read comes back as [Unreadable], because somebody chose it and deserves to
 /// know why they are looking at the built-in bird instead.
-Future<Pack?> packWornIn(Map<String, String> environment) async {
-  final kept = Directory(packsIn(environment));
+Future<Pack?> packWorn(String from, String? named) async {
+  final kept = Directory(from);
   String? chosen;
   try {
     if (!kept.existsSync()) return null;
@@ -96,7 +83,7 @@ Future<Pack?> packWornIn(Map<String, String> environment) async {
         .map((file) => file.uri.pathSegments.last)
         .where((named) => named.endsWith('.zip'))
         .toList();
-    chosen = packChosenFrom(packs, environment);
+    chosen = packChosenFrom(packs, named);
     if (chosen == null) return null;
     return await packFrom(await File('${kept.path}/$chosen').readAsBytes());
   } catch (trouble) {

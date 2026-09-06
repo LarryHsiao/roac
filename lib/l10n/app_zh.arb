@@ -26,5 +26,8 @@
   "packNoTiming": "這個角色包的 {gait} 要播好幾格，卻沒說靠什麼推進——給它 msPerFrame 或 pxPerFrame。",
   "packTwoTimings": "這個角色包的 {gait} 同時給了 msPerFrame 和 pxPerFrame，只能給一個。",
   "packMissingStrip": "這個角色包的 {gait} 指名 {image}，但包裡沒有這個檔案。",
-  "packSmallStrip": "這個角色包的 {gait} 說有 {frames} 格、每格 {wide} × {high}，但 {image} 只有 {actuallyWide} × {actuallyHigh}。"
+  "packSmallStrip": "這個角色包的 {gait} 說有 {frames} 格、每格 {wide} × {high}，但 {image} 只有 {actuallyWide} × {actuallyHigh}。",
+  "settingsShut": "Roäc 的設定檔在那裡，卻打不開（{trouble}）。裡頭寫的一律略過。",
+  "settingsNotJson": "Roäc 的設定檔不是 JSON（{trouble}）。裡頭寫的一律略過。",
+  "settingsNotSettings": "Roäc 的設定檔裡放的不是一組設定。裡頭寫的一律略過。"
 }

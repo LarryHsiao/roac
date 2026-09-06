@@ -84,6 +84,9 @@ String finished({
   'result': result,
 });
 
+/// Somewhere for the CLI to be run, which these tests never reach.
+const _notes = '/somewhere/notes';
+
 void main() {
   Shell shellOf(_Claude claude) =>
       (String _, List<String> _, {String? workingDirectory}) async => claude;
@@ -96,11 +99,12 @@ void main() {
         says: [delta('The '), delta('policy '), delta('is here.'), finished()],
       );
 
-      final said = await askCounsel('where?', shell: shellOf(claude))
-          .where((counsel) => counsel is Answer)
-          .cast<Answer>()
-          .map((answer) => answer.words)
-          .toList();
+      final said =
+          await askCounsel('where?', notes: _notes, shell: shellOf(claude))
+              .where((counsel) => counsel is Answer)
+              .cast<Answer>()
+              .map((answer) => answer.words)
+              .toList();
 
       expect(said, expected);
     },
@@ -110,7 +114,11 @@ void main() {
     const expected = 'a-session';
     final claude = _Claude(says: [delta('hello'), finished()]);
 
-    final answers = await askCounsel('hello?', shell: shellOf(claude)).toList();
+    final answers = await askCounsel(
+      'hello?',
+      notes: _notes,
+      shell: shellOf(claude),
+    ).toList();
 
     expect((answers.last as Answer).session, expected);
   });
@@ -125,9 +133,14 @@ void main() {
           return _Claude(says: [finished()]);
         };
 
-    await askCounsel('a', shell: watching((a) => fresh = a)).drain<void>();
     await askCounsel(
       'a',
+      notes: _notes,
+      shell: watching((a) => fresh = a),
+    ).drain<void>();
+    await askCounsel(
+      'a',
+      notes: _notes,
       resuming: 'an-old-session',
       shell: watching((a) => resumed = a),
     ).drain<void>();
@@ -145,11 +158,12 @@ void main() {
     'the question and the directory go as arguments, never spliced',
     () async {
       const question = 'what of "; rm -rf /" then?';
-      final expectedArguments = ['roac', question, knowledgeBase];
+      final expectedArguments = ['roac', question, _notes];
       late List<String> given;
 
       await askCounsel(
         question,
+        notes: _notes,
         shell:
             (
               String _,
@@ -171,7 +185,11 @@ void main() {
       const expected = 'the model refused';
       final claude = _Claude(says: [finished(failed: true, result: expected)]);
 
-      final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
+      final counsel = await askCounsel(
+        'anything',
+        notes: _notes,
+        shell: shellOf(claude),
+      ).last;
 
       expect(
         counsel,
@@ -188,7 +206,11 @@ void main() {
       ending: 127,
     );
 
-    final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
+    final counsel = await askCounsel(
+      'anything',
+      notes: _notes,
+      shell: shellOf(claude),
+    ).last;
 
     expect(counsel, isA<Complaint>().having((t) => t.words, 'words', expected));
   });
@@ -199,7 +221,11 @@ void main() {
       const expected = true;
       final claude = _Claude(says: [finished(failed: true, result: '   ')]);
 
-      final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
+      final counsel = await askCounsel(
+        'anything',
+        notes: _notes,
+        shell: shellOf(claude),
+      ).last;
 
       expect(counsel is Surrender, expected);
     },
@@ -209,7 +235,11 @@ void main() {
     const expected = 127;
     final claude = _Claude(says: const [], ending: expected);
 
-    final counsel = await askCounsel('anything', shell: shellOf(claude)).last;
+    final counsel = await askCounsel(
+      'anything',
+      notes: _notes,
+      shell: shellOf(claude),
+    ).last;
 
     expect(
       counsel,
@@ -223,6 +253,7 @@ void main() {
 
     final counsel = await askCounsel(
       'anything',
+      notes: _notes,
       shell: shellOf(claude),
       silence: const Duration(milliseconds: 20),
     ).last;
@@ -243,6 +274,7 @@ void main() {
 
       final listening = askCounsel(
         'anything',
+        notes: _notes,
         shell: shellOf(claude),
       ).listen((_) {});
       saying.add(utf8.encode('${delta('one')}\n'));
@@ -262,6 +294,7 @@ void main() {
     () async {
       final counsel = await askCounsel(
         'anything',
+        notes: _notes,
         shell: (String _, List<String> _, {String? workingDirectory}) async =>
             throw const ProcessException('/bin/zsh', [], 'no such shell'),
       ).last;
@@ -276,6 +309,7 @@ void main() {
 
     final counsel = await askCounsel(
       '   ',
+      notes: _notes,
       shell: (String _, List<String> _, {String? workingDirectory}) async {
         started = true;
         return _Claude();
@@ -284,34 +318,5 @@ void main() {
     final actual = (troubled: counsel is NoQuestion, started: started);
 
     expect(actual, expected);
-  });
-
-  group('where the notes are kept', () {
-    test('under the home directory by default, so nothing must be set up', () {
-      const expected = '/Users/someone/Minerva';
-
-      final actual = notesIn({'HOME': '/Users/someone'});
-
-      expect(actual, expected);
-    });
-
-    test('wherever ROAC_NOTES names, when it names anywhere', () {
-      const expected = '/elsewhere/my-notes';
-
-      final actual = notesIn({
-        'HOME': '/Users/someone',
-        'ROAC_NOTES': expected,
-      });
-
-      expect(actual, expected);
-    });
-
-    test('an empty ROAC_NOTES is no answer, and the default stands', () {
-      const expected = '/Users/someone/Minerva';
-
-      final actual = notesIn({'HOME': '/Users/someone', 'ROAC_NOTES': '  '});
-
-      expect(actual, expected);
-    });
   });
 }

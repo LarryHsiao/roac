@@ -204,5 +204,27 @@
         "type": "int"
       }
     }
+  },
+  "settingsShut": "Roäc's settings file is there and will not open ({trouble}). What it says is passed over.",
+  "@settingsShut": {
+    "description": "Why Roäc's settings file was passed over: Shut.",
+    "placeholders": {
+      "trouble": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsNotJson": "Roäc's settings file is not JSON ({trouble}). What it says is passed over.",
+  "@settingsNotJson": {
+    "description": "Why Roäc's settings file was passed over: NotJson.",
+    "placeholders": {
+      "trouble": {
+        "type": "String"
+      }
+    }
+  },
+  "settingsNotSettings": "Roäc's settings file holds something that is not a set of settings. What it says is passed over.",
+  "@settingsNotSettings": {
+    "description": "Why Roäc's settings file was passed over: NotSettings."
   }
 }

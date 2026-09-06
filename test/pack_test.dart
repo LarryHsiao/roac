@@ -370,33 +370,11 @@ void main() {
     });
   });
 
-  group('where the packs are, and which is worn', () {
-    test('under Application Support by default', () async {
-      const expected = '/Users/someone/Library/Application Support/roac/packs';
-
-      final actual = packsIn({'HOME': '/Users/someone'});
-
-      expect(actual, expected);
-    });
-
-    test('wherever ROAC_PACKS names, when it names anywhere', () async {
-      const expected = '/elsewhere/packs';
-
-      final actual = packsIn({
-        'HOME': '/Users/someone',
-        'ROAC_PACKS': expected,
-      });
-
-      expect(actual, expected);
-    });
-
-    test('the one ROAC_PACK names, when it names one that is there', () {
+  group('which pack is worn', () {
+    test('the one named, when it names one that is there', () {
       const expected = 'crow.zip';
 
-      final actual = packChosenFrom(
-        ['raven.zip', 'crow.zip'],
-        {'ROAC_PACK': expected},
-      );
+      final actual = packChosenFrom(['raven.zip', 'crow.zip'], expected);
 
       expect(actual, expected);
     });
@@ -408,7 +386,15 @@ void main() {
         'raven.zip',
         'crow.zip',
         'magpie.zip',
-      ], {});
+      ], null);
+
+      expect(actual, expected);
+    });
+
+    test('the first by name, when the one named is not there at all', () {
+      const expected = 'crow.zip';
+
+      final actual = packChosenFrom(['raven.zip', 'crow.zip'], 'nobody.zip');
 
       expect(actual, expected);
     });
@@ -416,7 +402,7 @@ void main() {
     test('and nobody at all when there are none, which is no failure', () {
       const String? expected = null;
 
-      final actual = packChosenFrom([], {});
+      final actual = packChosenFrom([], null);
 
       expect(actual, expected);
     });
@@ -490,7 +476,7 @@ void main() {
         '${kept.path}/roac-raven.zip',
       ).writeAsBytes(await File('packs/roac-raven.zip').readAsBytes());
 
-      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+      final worn = await packWorn(kept.path, null);
 
       expect((worn! as Character).name, expected);
     });
@@ -498,7 +484,7 @@ void main() {
     test('is nobody when the folder holds none, which is no failure', () async {
       const Pack? expected = null;
 
-      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+      final worn = await packWorn(kept.path, null);
 
       expect(worn, expected);
     });
@@ -507,7 +493,7 @@ void main() {
       const Pack? expected = null;
       await kept.delete(recursive: true);
 
-      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+      final worn = await packWorn(kept.path, null);
 
       expect(worn, expected);
     });
@@ -515,7 +501,7 @@ void main() {
     test('is refused aloud when the one that is there will not read', () async {
       await File('${kept.path}/broken.zip').writeAsString('not a pack at all');
 
-      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+      final worn = await packWorn(kept.path, null);
 
       expect(worn, isA<Unreadable>());
     });
@@ -528,7 +514,7 @@ void main() {
       await Process.run('chmod', ['000', expected]);
       addTearDown(() => Process.runSync('chmod', ['644', expected]));
 
-      final worn = await packWornIn({'ROAC_PACKS': kept.path});
+      final worn = await packWorn(kept.path, null);
 
       expect(
         (worn! as Unreadable).flaw,

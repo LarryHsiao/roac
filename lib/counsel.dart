@@ -4,22 +4,6 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 
-/// The knowledge base Roäc answers from. Its contents are read locally by the
-/// Claude Code CLI and never leave the machine.
-///
-/// `Minerva` under the home directory by default, so it needs no setting up;
-/// name `ROAC_NOTES` to point it elsewhere. Derived rather than written down
-/// because an absolute home path in checked-in source is true on one machine
-/// and wrong on every other.
-final knowledgeBase = notesIn(Platform.environment);
-
-/// Where [environment] says the notes are kept.
-String notesIn(Map<String, String> environment) {
-  final named = environment['ROAC_NOTES'];
-  if (named != null && named.trim().isNotEmpty) return named;
-  return '${environment['HOME'] ?? ''}/Minerva';
-}
-
 /// How long Roäc will wait on a silent CLI before giving up on it.
 ///
 /// Measured between one line of the CLI's stream and the next — not between
@@ -122,6 +106,7 @@ final class Complaint extends Trouble {
 /// the search finds nothing; rooted at the knowledge base it finds the note.
 Stream<Counsel> askCounsel(
   String question, {
+  required String notes,
   String? resuming,
   Shell shell = Process.start,
   Duration silence = _silence,
@@ -137,8 +122,8 @@ Stream<Counsel> askCounsel(
     try {
       claude = await shell(
         '/bin/zsh',
-        _command(question, resuming),
-        workingDirectory: knowledgeBase,
+        _command(question, resuming, notes),
+        workingDirectory: notes,
       );
       await for (final counsel in _listenTo(claude!, silence)) {
         if (told.isClosed) return;
@@ -168,12 +153,12 @@ void _say(StreamController<Counsel> told, Counsel counsel) {
 
 /// The shell's argument list. `$0` is the name the shell wears; the rest are
 /// the question, the knowledge base, and the conversation being carried on.
-List<String> _command(String question, String? resuming) => [
+List<String> _command(String question, String? resuming, String notes) => [
   '-lc',
   resuming == null ? _fresh : _again,
   'roac',
   question,
-  knowledgeBase,
+  notes,
   ?resuming,
 ];
 

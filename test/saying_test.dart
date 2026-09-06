@@ -4,6 +4,7 @@ import 'package:roac/counsel.dart';
 import 'package:roac/l10n/words.dart';
 import 'package:roac/pack.dart';
 import 'package:roac/saying.dart';
+import 'package:roac/settings.dart';
 
 /// Every flaw a pack may carry, each with values a sentence can be checked
 /// against.
@@ -38,6 +39,12 @@ const _everyFlaw = <Flaw>[
     wanted: Size(120, 120),
     actual: Size(240, 120),
   ),
+];
+
+const _everyMisread = <Misread>[
+  ShutSettings('permission denied'),
+  NotJson('unexpected character'),
+  NotSettings(),
 ];
 
 const _everyTrouble = <Trouble>[
@@ -82,6 +89,21 @@ void main() {
 
       expect(silent, expected);
     });
+
+    testWidgets(
+      'every misreading has something to say in ${locale.languageCode}',
+      (tester) async {
+        const expected = <String>[];
+        final tongue = await tongueOf(tester, locale);
+
+        final silent = [
+          for (final misread in _everyMisread)
+            if (saidOfMisread(tongue, misread).trim().isEmpty) '$misread',
+        ];
+
+        expect(silent, expected);
+      },
+    );
 
     testWidgets(
       'every trouble has something to say in ${locale.languageCode}',

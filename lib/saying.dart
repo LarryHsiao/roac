@@ -9,6 +9,7 @@ library;
 import 'counsel.dart';
 import 'l10n/words.dart';
 import 'pack.dart';
+import 'settings.dart';
 
 /// What a [trouble] says.
 ///
@@ -71,4 +72,14 @@ String saidOfFlaw(Words tongue, Flaw flaw) => switch (flaw) {
       actual.width.toInt(),
       actual.height.toInt(),
     ),
+};
+
+/// Why Roäc's settings file was passed over.
+///
+/// The trouble the filesystem or the JSON decoder reports is passed on in its
+/// own words, for the same reason a CLI's complaint is.
+String saidOfMisread(Words tongue, Misread misread) => switch (misread) {
+  ShutSettings(:final trouble) => tongue.settingsShut(trouble),
+  NotJson(:final trouble) => tongue.settingsNotJson(trouble),
+  NotSettings() => tongue.settingsNotSettings,
 };
