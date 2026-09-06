@@ -226,5 +226,63 @@
   "settingsNotSettings": "Roäc's settings file holds something that is not a set of settings. What it says is passed over.",
   "@settingsNotSettings": {
     "description": "Why Roäc's settings file was passed over: NotSettings."
+  },
+  "settingsTitle": "Settings",
+  "@settingsTitle": {
+    "description": "Settings panel: settingsTitle."
+  },
+  "closeSettings": "Close settings",
+  "@closeSettings": {
+    "description": "Settings panel: closeSettings."
+  },
+  "notesLabel": "Notes",
+  "@notesLabel": {
+    "description": "Settings panel: notesLabel."
+  },
+  "packsLabel": "Character packs",
+  "@packsLabel": {
+    "description": "Settings panel: packsLabel."
+  },
+  "characterLabel": "Character",
+  "@characterLabel": {
+    "description": "Settings panel: characterLabel."
+  },
+  "choose": "Choose…",
+  "@choose": {
+    "description": "Settings panel: choose."
+  },
+  "toldByFile": "told by the settings file",
+  "@toldByFile": {
+    "description": "Settings panel: toldByFile."
+  },
+  "toldByDefault": "the built-in default",
+  "@toldByDefault": {
+    "description": "Settings panel: toldByDefault."
+  },
+  "setByEnvironment": "set by {name}",
+  "@setByEnvironment": {
+    "description": "Settings panel: setByEnvironment.",
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "drawnCharacter": "Roäc (drawn)",
+  "@drawnCharacter": {
+    "description": "Settings panel: drawnCharacter."
+  },
+  "drawnCharacterNoPacks": "Roäc (drawn — no packs installed)",
+  "@drawnCharacterNoPacks": {
+    "description": "Settings panel: drawnCharacterNoPacks."
+  },
+  "settingsUnwritable": "Roäc's settings could not be saved ({trouble}).",
+  "@settingsUnwritable": {
+    "description": "Settings panel: settingsUnwritable.",
+    "placeholders": {
+      "trouble": {
+        "type": "String"
+      }
+    }
   }
 }

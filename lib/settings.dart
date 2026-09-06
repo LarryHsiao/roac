@@ -183,3 +183,54 @@ Future<_Read> _fileIn(Map<String, String> environment) async {
   if (told is! Map<String, Object?>) return const _Fumbled(NotSettings());
   return _Kept(told);
 }
+
+/// Writes [changes] into the settings file, merging with what is there
+/// already. A value of null drops that key, letting the tier beneath it
+/// stand again.
+///
+/// Returns the trouble as its own words when the file could not be written,
+/// or null when it was. Not wrapped in [Misread]: that sealed set names why
+/// a *read* failed, at a moment nothing else is known about it; a write is
+/// one person's own action, taken just now, and its own words already say
+/// enough of what went wrong.
+///
+/// A file that is there and will not read is not preserved — writing over it
+/// with what was just told is a fresh, deliberate telling, not a negotiation
+/// with whatever came before. Its trouble is healed by the same stroke: what
+/// is written back is always valid JSON.
+///
+/// A known cost of that healing: a file broken by one stray character, but
+/// otherwise holding settings a person meant to keep, loses all of them the
+/// moment any one setting is changed through the panel — the syntax error and
+/// the good values it sat beside are indistinguishable once parsing has
+/// failed. Worth naming; not worth solving for a fault a hand-edited file is
+/// rarely in.
+Future<String?> settingsWrite(
+  Map<String, String?> changes,
+  Map<String, String> environment,
+) async {
+  final kept = File(settingsPathIn(environment));
+  var told = <String, Object?>{};
+  if (kept.existsSync()) {
+    try {
+      final decoded = jsonDecode(await kept.readAsString());
+      if (decoded is Map<String, Object?>) told = decoded;
+    } catch (_) {
+      // Left empty on purpose — see the doc comment above.
+    }
+  }
+  for (final MapEntry(:key, :value) in changes.entries) {
+    if (value == null) {
+      told.remove(key);
+    } else {
+      told[key] = value;
+    }
+  }
+  try {
+    await kept.parent.create(recursive: true);
+    await kept.writeAsString(const JsonEncoder.withIndent('  ').convert(told));
+    return null;
+  } catch (trouble) {
+    return '$trouble';
+  }
+}

@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
 import 'package:roac/counsel.dart';
 import 'package:roac/l10n/words.dart';
+import 'package:roac/settings_panel.dart';
 import 'package:roac/main.dart';
 import 'package:roac/roaming.dart';
 import 'package:roac/sprite.dart';
@@ -153,6 +154,111 @@ void main() {
     expect(actual, expected);
   });
 
+  group('the settings panel', () {
+    Future<void> raiseWith(
+      WidgetTester tester, {
+      Map<String, String> environment = const {},
+      ChooseFolder chooseFolder = _declines,
+    }) async {
+      await tester.pumpWidget(
+        _speaking(Perch(environment: environment, chooseFolder: chooseFolder)),
+      );
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+    }
+
+    Future<void> openSettings(WidgetTester tester) async {
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await settle(tester);
+    }
+
+    testWidgets('the gear opens it in the bubble\'s own place', (tester) async {
+      const expected = (panel: true, bubble: false);
+      await raiseWith(tester);
+      await openSettings(tester);
+      final actual = (
+        panel: find.byType(SettingsPanel).evaluate().isNotEmpty,
+        bubble: find.byType(Bubble).evaluate().isNotEmpty,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('the shortcut opens and shuts it, the same as the gear', (
+      tester,
+    ) async {
+      const expected = (open: true, shutAgain: false);
+      await raiseWith(tester);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.metaLeft);
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.comma);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.comma);
+      await settle(tester);
+      final open = find.byType(SettingsPanel).evaluate().isNotEmpty;
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.comma);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.comma);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.metaLeft);
+      await settle(tester);
+      final actual = (
+        open: open,
+        shutAgain: find.byType(SettingsPanel).evaluate().isNotEmpty,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('its own close button returns to the bubble\'s chrome', (
+      tester,
+    ) async {
+      const expected = true;
+      await raiseWith(tester);
+      await openSettings(tester);
+      await tester.tap(find.byIcon(Icons.close));
+      await settle(tester);
+      final actual = find.byType(Bubble).evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
+
+    testWidgets('escape closes it first, and leaves the bubble open', (
+      tester,
+    ) async {
+      const expected = (panelGone: true, bubbleStill: true);
+      await raiseWith(tester);
+      await openSettings(tester);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+      final actual = (
+        panelGone: find.byType(SettingsPanel).evaluate().isEmpty,
+        bubbleStill: find.byType(Bubble).evaluate().isNotEmpty,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('shutting the bubble forgets that it was open', (tester) async {
+      const expected = true;
+      await raiseWith(tester);
+      await openSettings(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      final actual = find.byType(TextField).evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
+
+    // Persisting a chosen folder is proven two other ways rather than here:
+    // settingsWrite's own real-I/O tests in settings_test.dart, and the
+    // widget-level 'choosing a folder tells what was chosen' test in
+    // settings_panel_test.dart, which stubs onChanged rather than writing.
+    // Real directory I/O awaited inside a testWidgets body deadlocks the
+    // fake-async pump this harness runs on — the same trap met and avoided
+    // in step 3 — so the true end-to-end proof is done live on the running
+    // app instead, the way every other setting has been.
+  });
+
   group('what Roäc is told', () {
     /// A counsel that says what it is given, and remembers how it was asked.
     ({Asking asking, List<String?> resumed, StreamController<Counsel> saying})
@@ -283,3 +389,6 @@ MaterialApp _speaking(Widget child) => MaterialApp(
   supportedLocales: Words.supportedLocales,
   home: Scaffold(body: child),
 );
+
+/// A folder dialog that offers nothing, for the tests that never open one.
+Future<String?> _declines(String from) async => null;

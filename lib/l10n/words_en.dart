@@ -140,4 +140,44 @@ class WordsEn extends Words {
   @override
   String get settingsNotSettings =>
       'Roäc\'s settings file holds something that is not a set of settings. What it says is passed over.';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get closeSettings => 'Close settings';
+
+  @override
+  String get notesLabel => 'Notes';
+
+  @override
+  String get packsLabel => 'Character packs';
+
+  @override
+  String get characterLabel => 'Character';
+
+  @override
+  String get choose => 'Choose…';
+
+  @override
+  String get toldByFile => 'told by the settings file';
+
+  @override
+  String get toldByDefault => 'the built-in default';
+
+  @override
+  String setByEnvironment(String name) {
+    return 'set by $name';
+  }
+
+  @override
+  String get drawnCharacter => 'Roäc (drawn)';
+
+  @override
+  String get drawnCharacterNoPacks => 'Roäc (drawn — no packs installed)';
+
+  @override
+  String settingsUnwritable(String trouble) {
+    return 'Roäc\'s settings could not be saved ($trouble).';
+  }
 }

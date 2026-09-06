@@ -20,6 +20,7 @@ void main() {
         waiting: waiting,
         onAsk: (_) {},
         onWanting: onWanting,
+        onSettings: () {},
         opening: opening,
       ),
     ),

@@ -408,6 +408,51 @@ void main() {
     });
   });
 
+  group('which packs are there to choose among', () {
+    late Directory kept;
+
+    setUp(() async {
+      kept = await Directory.systemTemp.createTemp('roac-available');
+    });
+
+    tearDown(() => kept.deleteSync(recursive: true));
+
+    test(
+      'sorted by name, never by how a listing happened to order them',
+      () async {
+        const expected = ['crow.zip', 'magpie.zip', 'raven.zip'];
+        for (final name in ['raven.zip', 'crow.zip', 'magpie.zip']) {
+          await File('${kept.path}/$name').writeAsString('anything');
+        }
+
+        final actual = await packsAvailableIn(kept.path);
+
+        expect(actual, expected);
+      },
+    );
+
+    test('nothing that is not a zip', () async {
+      const expected = ['crow.zip'];
+      await File('${kept.path}/crow.zip').writeAsString('anything');
+      await File('${kept.path}/read-me.txt').writeAsString('anything');
+
+      final actual = await packsAvailableIn(kept.path);
+
+      expect(actual, expected);
+    });
+
+    test(
+      'an empty list where there is no folder at all, not a failure',
+      () async {
+        const expected = <String>[];
+
+        final actual = await packsAvailableIn('${kept.path}/nowhere');
+
+        expect(actual, expected);
+      },
+    );
+  });
+
   group('the pack Roäc ships with', () {
     // The first code anywhere that reads a pack off the disk, through the very
     // path a bought one takes.

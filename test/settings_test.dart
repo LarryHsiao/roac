@@ -178,4 +178,72 @@ void main() {
       expect(actual, expected);
     });
   });
+
+  group('telling Roäc something new', () {
+    test('is read back the next time he is asked', () async {
+      const expected = '/from/the/panel';
+
+      await settingsWrite({'notes': expected}, world);
+      final settings = await settingsIn(world);
+
+      expect(settings.notes.value, expected);
+    });
+
+    test('is written beside whatever was already there', () async {
+      const expected = (notes: '/kept/from/before', packs: '/just/written');
+      await write({'notes': expected.notes});
+
+      await settingsWrite({'packs': expected.packs}, world);
+      final settings = await settingsIn(world);
+
+      expect((
+        notes: settings.notes.value,
+        packs: settings.packs.value,
+      ), expected);
+    });
+
+    test('a value of null lets the tier beneath it stand again', () async {
+      const expected = (value: '/Users/someone/Minerva', told: Told.byDefault);
+      await write({'notes': '/from/the/file'});
+
+      await settingsWrite({'notes': null}, world);
+      final settings = await settingsIn(world);
+
+      expect((
+        value: settings.notes.value,
+        told: settings.notes.told,
+      ), expected);
+    });
+
+    test(
+      'heals a file that would not read, rather than preserving it',
+      () async {
+        const expected = (troubled: false, notes: '/mended');
+        await writeRaw('{ not json at all');
+
+        await settingsWrite({'notes': expected.notes}, world);
+        final settings = await settingsIn(world);
+
+        expect((
+          troubled: settings.trouble != null,
+          notes: settings.notes.value,
+        ), expected);
+      },
+    );
+
+    test('a folder that cannot be made is named, not swallowed', () async {
+      const expected = true;
+      // A settings path standing where a plain file already sits: no
+      // directory can ever be made there.
+      final blocked = '${kept.path}/blocks-the-way';
+      await File(blocked).writeAsString('in the way');
+
+      final trouble = await settingsWrite(
+        {'notes': '/anything'},
+        {...world, 'ROAC_SETTINGS': '$blocked/config.json'},
+      );
+
+      expect(trouble != null, expected);
+    });
+  });
 }

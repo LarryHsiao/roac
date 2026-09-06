@@ -284,6 +284,78 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'Roäc\'s settings file holds something that is not a set of settings. What it says is passed over.'**
   String get settingsNotSettings;
+
+  /// Settings panel: settingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings'**
+  String get settingsTitle;
+
+  /// Settings panel: closeSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Close settings'**
+  String get closeSettings;
+
+  /// Settings panel: notesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Notes'**
+  String get notesLabel;
+
+  /// Settings panel: packsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Character packs'**
+  String get packsLabel;
+
+  /// Settings panel: characterLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Character'**
+  String get characterLabel;
+
+  /// Settings panel: choose.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose…'**
+  String get choose;
+
+  /// Settings panel: toldByFile.
+  ///
+  /// In en, this message translates to:
+  /// **'told by the settings file'**
+  String get toldByFile;
+
+  /// Settings panel: toldByDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'the built-in default'**
+  String get toldByDefault;
+
+  /// Settings panel: setByEnvironment.
+  ///
+  /// In en, this message translates to:
+  /// **'set by {name}'**
+  String setByEnvironment(String name);
+
+  /// Settings panel: drawnCharacter.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc (drawn)'**
+  String get drawnCharacter;
+
+  /// Settings panel: drawnCharacterNoPacks.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc (drawn — no packs installed)'**
+  String get drawnCharacterNoPacks;
+
+  /// Settings panel: settingsUnwritable.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc\'s settings could not be saved ({trouble}).'**
+  String settingsUnwritable(String trouble);
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {

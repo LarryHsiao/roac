@@ -66,12 +66,37 @@ quietly replaced by the defaults** — somebody wrote it, and would otherwise be
 left wondering why it is ignored. A file that was never written is no fault and
 draws no word.
 
+**One cost of writing through the panel, worth knowing:** a file broken by one
+stray character, but otherwise holding settings worth keeping, loses all of
+them the moment any single setting is changed there. The syntax error and the
+good values beside it are indistinguishable once parsing has failed, so the
+write starts fresh rather than trying to save what it cannot read. Narrow, and
+not worth solving for a fault a hand-edited file is rarely in — but real.
+
+### The panel
+
+A gear beside the ask field, and `⌘,` besides, open a panel in the bubble's
+own place — the mascot keeps its footing below, exactly as it does under the
+bubble. It shows all three settings and where each was told from, in the same
+three colours the tiers carry above: green for an environment variable, amber
+for the file, plain for what Roäc was born knowing.
+
+Choosing a folder opens the native macOS dialog and writes the choice at once;
+choosing a character re-wears the bird immediately, no restart. A `config.json`
+that will not read shows its own complaint inline, in whichever tongue is
+current. Escape closes the panel first and the bubble second — never both at
+once — and its own close button does the same.
+
+The window grows to `settingsHeight` (`lib/roaming.dart`) to hold the panel
+without scrolling in the ordinary case; the panel scrolls besides, as the
+safety net for whatever that leaves no room for.
+
 ## Running
 
 ```sh
 flutter run -d macos          # with hot reload
 flutter build macos --debug   # or build, then open build/macos/Build/Products/Debug/roac.app
-flutter test                  # 126 tests
+flutter test                  # 147 tests
 flutter analyze
 ```
 
@@ -103,7 +128,8 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/roaming.dart` | `Gait`, `Facing`, `Stance`, and the pure geometry: where the mascot may stand on its display, and how a window is put back whole when the desktop has squashed it |
 | `lib/sprite.dart` | The raven and its three looks — breathing at rest, hopping and leaning while walking, still with its eye shut when pinned. All drawn, no art assets |
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
-| `lib/settings.dart` | What Roäc has been told: the three tiers, the settings file, and why it could not be used |
+| `lib/settings.dart` | What Roäc has been told: the three tiers, the settings file, why it could not be read, and how it is written |
+| `lib/settings_panel.dart` | The settings panel: showing what Roäc has been told, and choosing something else |
 | `lib/saying.dart` | The one place a named cause becomes a sentence. Everything else names what went wrong and carries the values |
 | `lib/l10n/` | The words Roäc speaks. `app_en.arb` and `app_zh.arb` are written by hand; `words*.dart` beside them are generated from those and committed, so a fresh clone analyses and tests without a generation step |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |

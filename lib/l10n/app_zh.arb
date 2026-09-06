@@ -29,5 +29,17 @@
   "packSmallStrip": "這個角色包的 {gait} 說有 {frames} 格、每格 {wide} × {high}，但 {image} 只有 {actuallyWide} × {actuallyHigh}。",
   "settingsShut": "Roäc 的設定檔在那裡，卻打不開（{trouble}）。裡頭寫的一律略過。",
   "settingsNotJson": "Roäc 的設定檔不是 JSON（{trouble}）。裡頭寫的一律略過。",
-  "settingsNotSettings": "Roäc 的設定檔裡放的不是一組設定。裡頭寫的一律略過。"
+  "settingsNotSettings": "Roäc 的設定檔裡放的不是一組設定。裡頭寫的一律略過。",
+  "settingsTitle": "設定",
+  "closeSettings": "關閉設定",
+  "notesLabel": "筆記",
+  "packsLabel": "角色包",
+  "characterLabel": "角色",
+  "choose": "選擇…",
+  "toldByFile": "由設定檔指定",
+  "toldByDefault": "內建的預設值",
+  "setByEnvironment": "由 {name} 指定",
+  "drawnCharacter": "Roäc（手繪）",
+  "drawnCharacterNoPacks": "Roäc（手繪——尚未安裝角色包）",
+  "settingsUnwritable": "Roäc 的設定存不了（{trouble}）。"
 }

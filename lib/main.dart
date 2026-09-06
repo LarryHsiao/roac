@@ -15,6 +15,7 @@ import 'pack.dart';
 import 'roaming.dart';
 import 'saying.dart';
 import 'settings.dart';
+import 'settings_panel.dart';
 import 'sprite.dart';
 
 Future<void> main() async {
@@ -96,7 +97,12 @@ typedef Asking = Stream<Counsel> Function(String question, {String? resuming});
 /// Where the sprite sits: it walks the window across the desktop, carries the
 /// drag and the pin, and keeps the window's transparent margin click-through.
 class Perch extends StatefulWidget {
-  const Perch({this.asking, this.environment = const {}, super.key});
+  const Perch({
+    this.asking,
+    this.environment = const {},
+    this.chooseFolder = fromTheFilesystem,
+    super.key,
+  });
 
   /// How a question is put. Null in the app, which puts it to the real CLI
   /// inside whichever notes the settings name; a test stands in its own.
@@ -106,6 +112,10 @@ class Perch extends StatefulWidget {
   /// by default so a test wears nothing it did not put there itself; the app
   /// hands it the real environment.
   final Map<String, String> environment;
+
+  /// How the settings panel's folder fields are chosen. The real dialog in
+  /// the app; a test stands in its own, in the same shape as [asking].
+  final ChooseFolder chooseFolder;
 
   @override
   State<Perch> createState() => _PerchState();
@@ -171,6 +181,14 @@ class _PerchState extends State<Perch> with WindowListener {
   /// landed, kept for the things that must read it without waiting.
   late final Future<Settings> _told = settingsIn(widget.environment);
   Settings? _settings;
+
+  /// The packs found in whatever folder [Settings.packs] currently names —
+  /// what the settings panel offers, kept alongside the pack actually worn
+  /// rather than read afresh each time the panel opens.
+  List<String> _installedPacks = const [];
+
+  /// Whether the settings panel stands in the bubble's own place.
+  bool _settingsOpen = false;
 
   /// Every pixel of ground walked since Roäc woke. A packed walk steps by
   /// this rather than by the clock, so the legs keep pace with the body.
@@ -246,6 +264,59 @@ class _PerchState extends State<Perch> with WindowListener {
     );
   }
 
+  /// Reads what Roäc has been told, afresh — called after a write, since an
+  /// environment variable may still outrank what was just written.
+  Future<void> _refreshSettings() async {
+    final told = await settingsIn(widget.environment);
+    if (!mounted) return;
+    setState(() => _settings = told);
+  }
+
+  /// Tells Roäc one thing: writes it to the settings file, then reads
+  /// everything afresh and re-wears a pack where what changed could change
+  /// which one is worn.
+  ///
+  /// A write that fails is said to the console rather than swallowed — the
+  /// same debt the README already names for a pack that will not read: this
+  /// app has nowhere else to say it yet.
+  Future<void> _tellSettings(String key, String? value) async {
+    final trouble = await settingsWrite({key: value}, widget.environment);
+    if (!mounted) return;
+    if (trouble != null) {
+      FlutterError.reportError(
+        FlutterErrorDetails(
+          exception: Words.of(context).settingsUnwritable(trouble),
+          library: 'roac',
+          context: ErrorDescription('writing what Roäc was told'),
+        ),
+      );
+    }
+    await _refreshSettings();
+    if (key == 'packs' || key == 'pack') await _wearAPack();
+  }
+
+  /// Opens the settings panel in the bubble's place, once something is known
+  /// to show it.
+  void _openSettings() {
+    if (_settings == null) return;
+    setState(() => _settingsOpen = true);
+    // Never shrinks: a bubble already grown tall for a long answer keeps
+    // that room, exactly as _grantRoom itself never gives room back.
+    if (_span.height < settingsHeight) {
+      unawaited(_standAs(Size(_span.width, settingsHeight)));
+    }
+  }
+
+  void _closeSettings() => setState(() => _settingsOpen = false);
+
+  void _toggleSettings() {
+    if (_settingsOpen) {
+      _closeSettings();
+    } else {
+      _openSettings();
+    }
+  }
+
   /// How a question is put: whatever a test handed over, or the real CLI run
   /// inside whichever notes Roäc has been told of.
   Stream<Counsel> _asking(String question, {String? resuming}) {
@@ -260,7 +331,8 @@ class _PerchState extends State<Perch> with WindowListener {
     );
   }
 
-  /// Wears whichever pack the environment asks for, if one can be read.
+  /// Wears whichever pack is chosen, if one can be read, and keeps the
+  /// roster of installed packs current — the settings panel's own dropdown.
   ///
   /// A pack that is there and will not read is said aloud rather than passed
   /// over: somebody chose it, and would otherwise be left wondering why they
@@ -268,10 +340,17 @@ class _PerchState extends State<Perch> with WindowListener {
   Future<void> _wearAPack() async {
     final settings = _settings;
     if (settings == null) return;
+    final installed = await packsAvailableIn(settings.packs.value);
+    if (!mounted) return;
+    setState(() => _installedPacks = installed);
     final pack = await packWorn(settings.packs.value, settings.pack?.value);
     if (!mounted) return;
     switch (pack) {
       case null:
+        // Nothing is chosen — because nothing names one, or because what was
+        // chosen is no longer among the installed packs — so the drawn raven
+        // is what is actually worn now, whatever stood before this reading.
+        setState(() => _worn = null);
         return;
       case Unreadable(:final flaw):
         FlutterError.reportError(
@@ -437,6 +516,7 @@ class _PerchState extends State<Perch> with WindowListener {
       _speaking = false;
       _waiting = false;
       _counsel = null;
+      _settingsOpen = false;
     });
     await _standAs(const Size(restingSize, restingSize));
     if (_gait != Gait.pinned) _armSpell();
@@ -531,22 +611,50 @@ class _PerchState extends State<Perch> with WindowListener {
     return _speaking ? _bubbleAbove(mascot) : mascot;
   }
 
+  /// Escape closes whichever is open — the settings panel first, since it
+  /// stands on top of the ask that would otherwise be shut.
+  void _escaped() {
+    if (_settingsOpen) {
+      _closeSettings();
+    } else {
+      _tapped();
+    }
+  }
+
+  /// The settings panel in the bubble's own place, or the bubble itself.
+  Widget _bubbleOrSettings() {
+    final settings = _settings;
+    if (_settingsOpen && settings != null) {
+      return SettingsPanel(
+        settings: settings,
+        installedPacks: _installedPacks,
+        onChanged: _tellSettings,
+        onClose: _closeSettings,
+        chooseFolder: widget.chooseFolder,
+      );
+    }
+    return Bubble(
+      counsel: _counsel,
+      waiting: _waiting,
+      onAsk: _ask,
+      onWanting: _grantRoom,
+      onSettings: _openSettings,
+    );
+  }
+
   /// The bubble is a sibling of the mascot, never its parent: a tap meant for
   /// the field must not also read as a tap on the sprite that shuts it.
   Widget _bubbleAbove(Widget mascot) {
     return CallbackShortcuts(
-      bindings: {const SingleActivator(LogicalKeyboardKey.escape): _tapped},
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.escape): _escaped,
+        const SingleActivator(LogicalKeyboardKey.comma, meta: true):
+            _toggleSettings,
+      },
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Bubble(
-              counsel: _counsel,
-              waiting: _waiting,
-              onAsk: _ask,
-              onWanting: _grantRoom,
-            ),
-          ),
+          Expanded(child: _bubbleOrSettings()),
           SizedBox(width: restingSize, height: restingSize, child: mascot),
         ],
       ),

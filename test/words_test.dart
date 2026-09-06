@@ -70,6 +70,7 @@ void main() {
             waiting: false,
             onAsk: _asks,
             onWanting: _wants,
+            onSettings: _settled,
           ),
         ),
       ),
@@ -88,3 +89,6 @@ void main() {
 
 void _asks(String _) {}
 void _wants(double _) {}
+
+/// A gear that goes nowhere, for the tests that are not about the panel.
+void _settled() {}

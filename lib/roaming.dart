@@ -41,6 +41,13 @@ const double restingSize = 160;
 /// side. It grows from here as an answer needs it.
 const Size speakingSize = Size(420, 300);
 
+/// How tall the window grows to hold the settings panel — enough for its
+/// three settings and a misread-file notice without scrolling, in the
+/// ordinary case. The panel scrolls besides, as a safety net for whatever
+/// this leaves no room for: a long path with nowhere to break, a sentence
+/// translated longer than English ever runs.
+const double settingsHeight = 500;
+
 /// The most of a display's height the bubble may take, however long the
 /// answer runs. A window taller than the desktop it stands on is squashed by
 /// macOS, and a bird pinned to the ceiling is no use to anybody.

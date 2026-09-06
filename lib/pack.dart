@@ -27,6 +27,21 @@ const gaitNames = {
 /// Roäc that has since learned more.
 const readableFormat = 1;
 
+/// The packs kept in [folder], sorted by name — empty where there is no
+/// folder at all, or nothing in it. What a settings panel offers to choose
+/// among, and the roster [packChosenFrom] chooses from itself.
+Future<List<String>> packsAvailableIn(String folder) async {
+  final kept = Directory(folder);
+  if (!kept.existsSync()) return const [];
+  final packs = kept
+      .listSync()
+      .whereType<File>()
+      .map((file) => file.uri.pathSegments.last)
+      .where((named) => named.endsWith('.zip'))
+      .toList();
+  return [...packs]..sort();
+}
+
 /// Which of [packs] to wear, given the one [named] asks for.
 ///
 /// A name that is there is worn. Failing that the first by name, so that a
@@ -76,13 +91,7 @@ Future<Pack?> packWorn(String from, String? named) async {
   final kept = Directory(from);
   String? chosen;
   try {
-    if (!kept.existsSync()) return null;
-    final packs = kept
-        .listSync()
-        .whereType<File>()
-        .map((file) => file.uri.pathSegments.last)
-        .where((named) => named.endsWith('.zip'))
-        .toList();
+    final packs = await packsAvailableIn(from);
     chosen = packChosenFrom(packs, named);
     if (chosen == null) return null;
     return await packFrom(await File('${kept.path}/$chosen').readAsBytes());

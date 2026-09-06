@@ -34,6 +34,7 @@ class Bubble extends StatelessWidget {
     required this.waiting,
     required this.onAsk,
     required this.onWanting,
+    required this.onSettings,
     this.opening = launchUrl,
     super.key,
   });
@@ -48,6 +49,9 @@ class Bubble extends StatelessWidget {
 
   /// Told when the answer has more to show than there is room for.
   final Wanting onWanting;
+
+  /// Told when the gear beside the field is tapped.
+  final VoidCallback onSettings;
 
   /// What follows a link the reader taps.
   final Opening opening;
@@ -74,7 +78,23 @@ class Bubble extends StatelessWidget {
             ),
           ),
           const SizedBox(height: _padding),
-          _Asking(onAsk: onAsk),
+          Row(
+            children: [
+              Expanded(child: _Asking(onAsk: onAsk)),
+              const SizedBox(width: 4),
+              IconButton(
+                icon: const Icon(
+                  Icons.settings_outlined,
+                  color: _faint,
+                  size: 18,
+                ),
+                tooltip: Words.of(context).settingsTitle,
+                onPressed: onSettings,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+            ],
+          ),
         ],
       ),
     );

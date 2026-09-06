@@ -137,4 +137,44 @@ class WordsZh extends Words {
 
   @override
   String get settingsNotSettings => 'Roäc 的設定檔裡放的不是一組設定。裡頭寫的一律略過。';
+
+  @override
+  String get settingsTitle => '設定';
+
+  @override
+  String get closeSettings => '關閉設定';
+
+  @override
+  String get notesLabel => '筆記';
+
+  @override
+  String get packsLabel => '角色包';
+
+  @override
+  String get characterLabel => '角色';
+
+  @override
+  String get choose => '選擇…';
+
+  @override
+  String get toldByFile => '由設定檔指定';
+
+  @override
+  String get toldByDefault => '內建的預設值';
+
+  @override
+  String setByEnvironment(String name) {
+    return '由 $name 指定';
+  }
+
+  @override
+  String get drawnCharacter => 'Roäc（手繪）';
+
+  @override
+  String get drawnCharacterNoPacks => 'Roäc（手繪——尚未安裝角色包）';
+
+  @override
+  String settingsUnwritable(String trouble) {
+    return 'Roäc 的設定存不了（$trouble）。';
+  }
 }
