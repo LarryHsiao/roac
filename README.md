@@ -1,6 +1,7 @@
 # Roäc
 
-A desktop mascot for macOS that answers questions about your own notes.
+A desktop mascot for macOS and Windows that answers questions about your own
+notes.
 
 A small raven floats above your other windows and wanders across the screen. Click it and a speech bubble opens; type a question and it answers by
 running the Claude Code CLI over a local markdown knowledge base. Nothing is
@@ -89,7 +90,7 @@ for the file, plain for what Roäc was born knowing. The Claude config row has
 no third colour of its own — nothing chosen there shows as the CLI's own
 config, with no tier line beneath it, since there is no tier to name.
 
-Choosing a folder opens the native macOS dialog and writes the choice at once;
+Choosing a folder opens the native folder dialog and writes the choice at once;
 choosing a character re-wears the bird immediately, no restart. A `config.json`
 that will not read shows its own complaint inline, in whichever tongue is
 current. Escape closes the panel first and the bubble second — never both at
