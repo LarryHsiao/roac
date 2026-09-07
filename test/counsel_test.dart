@@ -87,6 +87,10 @@ String finished({
 /// Somewhere for the CLI to be run, which these tests never reach.
 const _notes = '/somewhere/notes';
 
+/// Reaps nothing. Every test but the ones about reaping itself has no
+/// business spawning a real `taskkill` or `pkill`.
+Future<void> _noReap(int _, {required bool onWindows}) async {}
+
 void main() {
   Shell shellOf(_Claude claude) =>
       (
@@ -105,7 +109,12 @@ void main() {
       );
 
       final said =
-          await askCounsel('where?', notes: _notes, shell: shellOf(claude))
+          await askCounsel(
+                'where?',
+                notes: _notes,
+                shell: shellOf(claude),
+                reap: _noReap,
+              )
               .where((counsel) => counsel is Answer)
               .cast<Answer>()
               .map((answer) => answer.words)
@@ -123,6 +132,7 @@ void main() {
       'hello?',
       notes: _notes,
       shell: shellOf(claude),
+      reap: _noReap,
     ).toList();
 
     expect((answers.last as Answer).session, expected);
@@ -148,6 +158,7 @@ void main() {
       notes: _notes,
       shell: watching((a) => fresh = a),
       onWindows: false,
+      reap: _noReap,
     ).drain<void>();
     await askCounsel(
       'a',
@@ -155,6 +166,7 @@ void main() {
       resuming: 'an-old-session',
       shell: watching((a) => resumed = a),
       onWindows: false,
+      reap: _noReap,
     ).drain<void>();
 
     final actual = (
@@ -177,6 +189,7 @@ void main() {
         question,
         notes: _notes,
         onWindows: false,
+        reap: _noReap,
         shell:
             (
               String _,
@@ -204,6 +217,7 @@ void main() {
           'where?',
           notes: _notes,
           claudeConfig: '/Users/someone/.claude-work',
+          reap: _noReap,
           shell:
               (
                 String _,
@@ -227,6 +241,7 @@ void main() {
       await askCounsel(
         'where?',
         notes: _notes,
+        reap: _noReap,
         shell:
             (
               String _,
@@ -359,6 +374,7 @@ void main() {
         'anything',
         notes: _notes,
         shell: shellOf(claude),
+        reap: _noReap,
       ).last;
 
       expect(
@@ -380,6 +396,7 @@ void main() {
       'anything',
       notes: _notes,
       shell: shellOf(claude),
+      reap: _noReap,
     ).last;
 
     expect(counsel, isA<Complaint>().having((t) => t.words, 'words', expected));
@@ -395,6 +412,7 @@ void main() {
         'anything',
         notes: _notes,
         shell: shellOf(claude),
+        reap: _noReap,
       ).last;
 
       expect(counsel is Surrender, expected);
@@ -409,6 +427,7 @@ void main() {
       'anything',
       notes: _notes,
       shell: shellOf(claude),
+      reap: _noReap,
     ).last;
 
     expect(
@@ -426,6 +445,7 @@ void main() {
       notes: _notes,
       shell: shellOf(claude),
       silence: const Duration(milliseconds: 20),
+      reap: _noReap,
     ).last;
     final actual = (troubled: counsel is Silence, killed: claude.killed);
 
@@ -446,6 +466,7 @@ void main() {
         'anything',
         notes: _notes,
         shell: shellOf(claude),
+        reap: _noReap,
       ).listen((_) {});
       saying.add(utf8.encode('${delta('one')}\n'));
       await Future<void>.delayed(const Duration(milliseconds: 20));
@@ -465,6 +486,7 @@ void main() {
       final counsel = await askCounsel(
         'anything',
         notes: _notes,
+        reap: _noReap,
         shell:
             (
               String _,
@@ -486,6 +508,7 @@ void main() {
     final counsel = await askCounsel(
       '   ',
       notes: _notes,
+      reap: _noReap,
       shell:
           (
             String _,
@@ -500,5 +523,82 @@ void main() {
     final actual = (troubled: counsel is NoQuestion, started: started);
 
     expect(actual, expected);
+  });
+
+  group('what the CLI itself may have spawned', () {
+    test(
+      'is reaped, on the pid and machine the CLI was actually run on',
+      () async {
+        const expected = (pid: 1, onWindows: true);
+        final claude = _Claude(says: [finished()]);
+        int? reapedPid;
+        bool? reapedOnWindows;
+
+        await askCounsel(
+          'anything',
+          notes: _notes,
+          onWindows: true,
+          shell: shellOf(claude),
+          reap: (pid, {required onWindows}) async {
+            reapedPid = pid;
+            reapedOnWindows = onWindows;
+          },
+        ).drain<void>();
+
+        expect((pid: reapedPid, onWindows: reapedOnWindows), expected);
+      },
+    );
+
+    test(
+      'is reaped before the CLI itself is killed, not after, and only once',
+      () async {
+        const expected = (killed: true, killedAlready: false, calls: 1);
+        final claude = _Claude(says: [finished()]);
+        var killedAlready = false;
+        var calls = 0;
+
+        await askCounsel(
+          'anything',
+          notes: _notes,
+          onWindows: false,
+          shell: shellOf(claude),
+          reap: (pid, {required onWindows}) async {
+            calls++;
+            killedAlready = claude.killed;
+          },
+        ).drain<void>();
+
+        expect((
+          killed: claude.killed,
+          killedAlready: killedAlready,
+          calls: calls,
+        ), expected);
+      },
+    );
+
+    test('is reaped on cancel too, not only once the CLI finishes', () async {
+      const expected = (pid: 1, onWindows: false);
+      final saying = StreamController<List<int>>();
+      final claude = _Claude.speaking(saying.stream);
+      int? reapedPid;
+      bool? reapedOnWindows;
+
+      final listening = askCounsel(
+        'anything',
+        notes: _notes,
+        onWindows: false,
+        shell: shellOf(claude),
+        reap: (pid, {required onWindows}) async {
+          reapedPid = pid;
+          reapedOnWindows = onWindows;
+        },
+      ).listen((_) {});
+      saying.add(utf8.encode('${delta('one')}\n'));
+      await Future<void>.delayed(const Duration(milliseconds: 20));
+      await listening.cancel();
+      await saying.close();
+
+      expect((pid: reapedPid, onWindows: reapedOnWindows), expected);
+    });
   });
 }

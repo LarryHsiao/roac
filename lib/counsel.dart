@@ -12,7 +12,9 @@ import 'package:flutter/foundation.dart';
 /// off at a total would punish exactly the questions worth asking.
 const _silence = Duration(seconds: 90);
 
-/// How long to wait for a finished CLI to be reaped before naming it lost.
+/// How long Roäc waits on the CLI's own process-bookkeeping — for a finished
+/// CLI to be reaped, or for [Reap] to reach what the CLI itself spawned —
+/// before moving on regardless.
 const _reaping = Duration(seconds: 5);
 
 /// The name the CLI answers to. Found on the PATH rather than written down,
@@ -128,6 +130,10 @@ final class Complaint extends Trouble {
 /// own process rather than Roäc's, so it never leaks into anything else this
 /// app might one day run. Left alone when null: the CLI then falls back on
 /// whichever config it would have used had Roäc never asked.
+///
+/// The CLI is free to shell out for a tool call of its own; killing it alone
+/// would orphan that rather than end it. [reap] is asked to reach for
+/// whatever it spawned, every time it is killed — see [_reap] for how.
 Stream<Counsel> askCounsel(
   String question, {
   required String notes,
@@ -136,9 +142,31 @@ Stream<Counsel> askCounsel(
   Duration silence = _silence,
   bool? onWindows,
   String? claudeConfig,
+  Reap reap = _reap,
 }) {
   final told = StreamController<Counsel>();
+  final windows = onWindows ?? Platform.isWindows;
   Process? claude;
+  // Reaps whatever the CLI spawned before ending the CLI itself — the other
+  // order would let its children be reparented first, past finding. Cleared
+  // first so a second call — closing this controller cancels its own
+  // subscription, which asks to let go again — finds nothing left to do,
+  // rather than asking `reap` and `kill` to run twice over.
+  //
+  // Bounded like every other wait on the CLI's own process-bookkeeping in
+  // this file: `reap` shells out to the OS, and a machine where that hangs
+  // must not hold the answer open for ever either.
+  Future<void> letGo() async {
+    final dying = claude;
+    if (dying == null) return;
+    claude = null;
+    await reap(
+      dying.pid,
+      onWindows: windows,
+    ).timeout(_reaping, onTimeout: () {});
+    dying.kill();
+  }
+
   told.onListen = () async {
     if (question.trim().isEmpty) {
       told.add(const NoQuestion());
@@ -150,7 +178,7 @@ Stream<Counsel> askCounsel(
         question,
         notes: notes,
         resuming: resuming,
-        onWindows: onWindows ?? Platform.isWindows,
+        onWindows: windows,
       );
       claude = await shell(
         summons.executable,
@@ -169,7 +197,7 @@ Stream<Counsel> askCounsel(
     } catch (trouble) {
       _say(told, Complaint('$trouble'));
     } finally {
-      claude?.kill();
+      await letGo();
       if (!told.isClosed) await told.close();
     }
   };
@@ -177,13 +205,34 @@ Stream<Counsel> askCounsel(
   // happens to speak. Cancelling a subscription does not interrupt a read
   // already in progress, so waiting for the generator to notice could mean
   // waiting out the whole silence — with the CLI thinking on, unheard.
-  told.onCancel = () => claude?.kill();
+  told.onCancel = letGo;
   return told.stream;
 }
 
 /// Says [counsel] on, unless nobody is listening for it any longer.
 void _say(StreamController<Counsel> told, Counsel counsel) {
   if (!told.isClosed) told.add(counsel);
+}
+
+/// How Roäc reaches for whatever the CLI itself may have spawned — named so
+/// a test may stand in for the real process table, the same seam [Shell]
+/// gives the real shell.
+typedef Reap = Future<void> Function(int pid, {required bool onWindows});
+
+/// Best-effort only: a machine whose PATH lacks `taskkill`/`pkill` loses only
+/// this extra reach, since [pid] itself is still killed by the caller
+/// regardless of what happens here. Reaches one level deep — the CLI's own
+/// direct children — not their children in turn.
+Future<void> _reap(int pid, {required bool onWindows}) async {
+  try {
+    if (onWindows) {
+      await Process.run('taskkill', ['/PID', '$pid', '/T', '/F']);
+    } else {
+      await Process.run('pkill', ['-TERM', '-P', '$pid']);
+    }
+  } catch (_) {
+    // Swallowed on purpose — see the doc comment above.
+  }
 }
 
 /// What to run, and what to hand it.
