@@ -333,6 +333,34 @@ round-trip is driven too: a test opens the bubble, watches the window take
 One gap worth knowing about: **nothing tests the animation by eye.** Whether the
 mascot *looks* alive is a judgement no assertion makes for you.
 
+## Releasing
+
+A TeamCity project (`Roac`) runs both platforms' scripts unattended on every
+`v*` tag push, mirroring Orthanc's own setup. The same scripts also run fine
+by hand for a local release — each fails on the first missing tool rather
+than part-way through, so check its prerequisites before the first run.
+
+Roäc checks for updates on launch and downloads them automatically via
+Sparkle/WinSparkle — Sparkle shows its own one-time "install now?" consent
+alert before applying, and a settings-panel button lets the check be asked
+for by hand too. See [`docs/releasing.md`](docs/releasing.md) for the one
+extra step this adds beyond the build below: signing each artifact and
+publishing it to the `appcast.xml` feed, and for the full CI setup.
+
+- **Windows** — `scripts/build_windows.ps1` builds an installer (via
+  `installer/roac.iss`) and a raw zip. *Needs:* **Inno Setup 6** (`ISCC.exe`
+  at its default path or on `PATH`). Code-signing is optional — Roäc has no
+  certificate yet — pass `-CertPath`/`-CertPassword` once one exists.
+  `scripts/release_github.ps1` then uploads the artifacts to a GitHub Release
+  — *needs* the `gh` CLI, authenticated (locally) or `GH_TOKEN` in the
+  environment (on CI, since `gh` prefers that over any stored login).
+- **macOS** — `scripts/publish_macos.sh` builds a signed, notarized DMG
+  interactively, the same identity/credentials as Orthanc's own script.
+  `scripts/ci_build_macos_dmg.sh` is the unattended CI counterpart, reading
+  every credential from the environment instead of a login keychain —
+  neither has actually run yet: this repository's own history has never cut
+  a release, and no macOS build agent is connected to TeamCity at all.
+
 ## Not yet built
 
 A status-bar item, and launch at login.

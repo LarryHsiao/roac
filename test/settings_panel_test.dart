@@ -22,6 +22,7 @@ void main() {
     List<String> installedPacks = const [],
     void Function(String key, String? value)? onChanged,
     VoidCallback? onClose,
+    VoidCallback? onCheckForUpdates,
     ChooseFolder? chooseFolder,
   }) => tester.pumpWidget(
     MaterialApp(
@@ -33,6 +34,7 @@ void main() {
           installedPacks: installedPacks,
           onChanged: onChanged ?? (_, _) {},
           onClose: onClose ?? () {},
+          onCheckForUpdates: onCheckForUpdates ?? () {},
           chooseFolder: chooseFolder ?? (from) async => null,
         ),
       ),
@@ -106,55 +108,56 @@ void main() {
     });
   });
 
-  testWidgets(
-    'a fourth row still fits the real window without overflowing it',
-    (tester) async {
-      const expected = true;
-      await tester.pumpWidget(
-        MaterialApp(
-          localizationsDelegates: Words.localizationsDelegates,
-          supportedLocales: Words.supportedLocales,
-          home: Scaffold(
-            body: SizedBox(
-              // The window's own real proportions — 420 wide, grown to
-              // settingsHeight (lib/roaming.dart) tall — not the test
-              // surface's default. A fourth row is exactly what overflowed
-              // this panel once before; this is the case that would catch it
-              // again, rather than trusting an unconstrained test surface.
-              width: speakingSize.width,
-              height: settingsHeight,
-              child: SettingsPanel(
-                settings: const Settings(
-                  notes: Chosen('/Users/someone/Minerva', Told.byDefault),
-                  packs: Chosen(
-                    '/Users/someone/Library/Application Support/roac/packs',
-                    Told.byDefault,
-                  ),
-                  pack: Chosen(
-                    'a-rather-long-character-pack-name.zip',
-                    Told.file,
-                  ),
-                  claudeConfig: Chosen(
-                    r'C:\Users\someone\SomeVeryLongCorporateFolderName'
-                    r'\NestedConfigProfiles\claude-personal-work-shared-2026',
-                    Told.environment,
-                  ),
+  testWidgets('a fifth row still fits the real window without overflowing it', (
+    tester,
+  ) async {
+    const expected = true;
+    await tester.pumpWidget(
+      MaterialApp(
+        localizationsDelegates: Words.localizationsDelegates,
+        supportedLocales: Words.supportedLocales,
+        home: Scaffold(
+          body: SizedBox(
+            // The window's own real proportions — 420 wide, grown to
+            // settingsHeight (lib/roaming.dart) tall — not the test
+            // surface's default. A fourth row is exactly what overflowed
+            // this panel once before (now a fifth, with Updates); this is
+            // the case that would catch it again, rather than trusting an
+            // unconstrained test surface.
+            width: speakingSize.width,
+            height: settingsHeight,
+            child: SettingsPanel(
+              settings: const Settings(
+                notes: Chosen('/Users/someone/Minerva', Told.byDefault),
+                packs: Chosen(
+                  '/Users/someone/Library/Application Support/roac/packs',
+                  Told.byDefault,
                 ),
-                installedPacks: const ['a-rather-long-character-pack-name.zip'],
-                onChanged: (_, _) {},
-                onClose: () {},
-                chooseFolder: (from) async => null,
+                pack: Chosen(
+                  'a-rather-long-character-pack-name.zip',
+                  Told.file,
+                ),
+                claudeConfig: Chosen(
+                  r'C:\Users\someone\SomeVeryLongCorporateFolderName'
+                  r'\NestedConfigProfiles\claude-personal-work-shared-2026',
+                  Told.environment,
+                ),
               ),
+              installedPacks: const ['a-rather-long-character-pack-name.zip'],
+              onChanged: (_, _) {},
+              onClose: () {},
+              onCheckForUpdates: () {},
+              chooseFolder: (from) async => null,
             ),
           ),
         ),
-      );
+      ),
+    );
 
-      final actual = tester.takeException() == null;
+    final actual = tester.takeException() == null;
 
-      expect(actual, expected);
-    },
-  );
+    expect(actual, expected);
+  });
 
   testWidgets('a pack once chosen and since removed is not offered back', (
     tester,
@@ -259,6 +262,18 @@ void main() {
     await tester.pumpAndSettle();
 
     expect((toldKey, toldValue), expected);
+  });
+
+  testWidgets('checking for updates asks the panel to do it, not itself', (
+    tester,
+  ) async {
+    const expected = true;
+    var checked = false;
+
+    await show(tester, onCheckForUpdates: () => checked = true);
+    await tester.tap(find.text('Check now'));
+
+    expect(checked, expected);
   });
 
   testWidgets('the close button is told, not the panel itself', (tester) async {

@@ -2,9 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math' as math;
 
+import 'package:auto_updater/auto_updater.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:screen_retriever/screen_retriever.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:window_manager/window_manager.dart';
 
 import 'bubble.dart';
@@ -17,6 +20,18 @@ import 'saying.dart';
 import 'settings.dart';
 import 'settings_panel.dart';
 import 'sprite.dart';
+import 'update_note.dart';
+import 'update_note_banner.dart';
+
+/// Where a fresh launch's last-seen-version note is kept, so a launch that
+/// landed on a newer build than the last one seen can say so once.
+const _lastSeenVersionKey = 'last_seen_version';
+
+/// `appcast.xml`, committed at the repo root and served over its raw GitHub
+/// URL — no separate hosting, the same way GitHub already serves the release
+/// binaries the feed points at.
+const _appcastFeedUrl =
+    'https://raw.githubusercontent.com/LarryHsiao/roac/main/appcast.xml';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -94,6 +109,15 @@ class Roac extends StatelessWidget {
 /// the same shape as the shell that counsel.dart stands in for.
 typedef Asking = Stream<Counsel> Function(String question, {String? resuming});
 
+/// How a check for a newer release is made — named so a test may stand in
+/// for the real Sparkle/WinSparkle call, in the same shape as [Asking].
+typedef CheckForUpdates = Future<void> Function({required bool inBackground});
+
+/// How the once-per-launch update note is computed — named so a test may
+/// stand in for the real prefs/package-info reads, in the same shape as
+/// [Asking].
+typedef UpdateNoteCheck = Future<UpdateNoteState> Function();
+
 /// Where the sprite sits: it walks the window across the desktop, carries the
 /// drag and the pin, and keeps the window's transparent margin click-through.
 class Perch extends StatefulWidget {
@@ -101,6 +125,8 @@ class Perch extends StatefulWidget {
     this.asking,
     this.environment = const {},
     this.chooseFolder = fromTheFilesystem,
+    this.checkForUpdates,
+    this.updateNoteCheck,
     super.key,
   });
 
@@ -116,6 +142,17 @@ class Perch extends StatefulWidget {
   /// How the settings panel's folder fields are chosen. The real dialog in
   /// the app; a test stands in its own, in the same shape as [asking].
   final ChooseFolder chooseFolder;
+
+  /// How a check for a newer release is made. Null in the app, which asks
+  /// the real `auto_updater` plugin; a test stands in its own, in the same
+  /// shape as [asking].
+  final CheckForUpdates? checkForUpdates;
+
+  /// How the update note is computed on launch. Null in the app, which reads
+  /// the real last-seen version from local prefs and weighs it against the
+  /// real running version; a test stands in its own, in the same shape as
+  /// [asking].
+  final UpdateNoteCheck? updateNoteCheck;
 
   @override
   State<Perch> createState() => _PerchState();
@@ -190,6 +227,12 @@ class _PerchState extends State<Perch> with WindowListener {
   /// Whether the settings panel stands in the bubble's own place.
   bool _settingsOpen = false;
 
+  /// What to say about a launch that landed on a newer version than the last
+  /// one seen — null once said, once there was nothing to say, or once
+  /// dismissed. Shown the next time the bubble opens, since the resting
+  /// mascot alone has no chrome to say it in.
+  UpdateNoteState? _note;
+
   /// Every pixel of ground walked since Roäc woke. A packed walk steps by
   /// this rather than by the clock, so the legs keep pace with the body.
   double _walked = 0;
@@ -211,6 +254,59 @@ class _PerchState extends State<Perch> with WindowListener {
     super.initState();
     windowManager.addListener(this);
     unawaited(_comeAlive());
+    unawaited(_showUpdateNoteIfAny());
+    unawaited(_checkForUpdate(inBackground: true));
+  }
+
+  /// Weighs the update note against local prefs, and holds onto it — shown
+  /// once the bubble is next opened — if there is one worth saying.
+  Future<void> _showUpdateNoteIfAny() async {
+    try {
+      final state = await (widget.updateNoteCheck ?? _realUpdateNoteCheck)();
+      if (state.shouldShow && mounted) setState(() => _note = state);
+    } catch (_) {
+      // Best-effort, the same as the check itself: a prefs or package-info
+      // read that fails must never stand between the mascot and its window.
+    }
+  }
+
+  /// The real update-note check: the running version against the last one
+  /// local prefs remember, via [updateNoteOnLaunch].
+  Future<UpdateNoteState> _realUpdateNoteCheck() async {
+    final info = await PackageInfo.fromPlatform();
+    return updateNoteOnLaunch(
+      readLastSeenVersion: () async {
+        final prefs = await SharedPreferences.getInstance();
+        return prefs.getString(_lastSeenVersionKey);
+      },
+      writeLastSeenVersion: (version) async {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(_lastSeenVersionKey, version);
+      },
+      currentVersion: info.version,
+    );
+  }
+
+  /// Asks for a newer release. [inBackground] true is the silent launch-time
+  /// check; false is the settings panel's manual one, which lets
+  /// Sparkle/WinSparkle raise their own "up to date" or "update found"
+  /// dialog rather than Roäc inventing a status of its own.
+  ///
+  /// Fails silent by design: a missing feed or a network hiccup is not worth
+  /// surfacing, on launch or on a manual ask alike — the next check tries
+  /// again.
+  Future<void> _checkForUpdate({required bool inBackground}) async {
+    try {
+      final custom = widget.checkForUpdates;
+      if (custom != null) {
+        await custom(inBackground: inBackground);
+        return;
+      }
+      await autoUpdater.setFeedURL(_appcastFeedUrl);
+      await autoUpdater.checkForUpdates(inBackground: inBackground);
+    } catch (_) {
+      // Fail silent by design — see the doc comment above.
+    }
   }
 
   @override
@@ -634,6 +730,8 @@ class _PerchState extends State<Perch> with WindowListener {
         installedPacks: _installedPacks,
         onChanged: _tellSettings,
         onClose: _closeSettings,
+        onCheckForUpdates: () =>
+            unawaited(_checkForUpdate(inBackground: false)),
         chooseFolder: widget.chooseFolder,
       );
     }
@@ -649,6 +747,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// The bubble is a sibling of the mascot, never its parent: a tap meant for
   /// the field must not also read as a tap on the sprite that shuts it.
   Widget _bubbleAbove(Widget mascot) {
+    final note = _note;
     return CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.escape): _escaped,
@@ -658,6 +757,11 @@ class _PerchState extends State<Perch> with WindowListener {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          if (note != null)
+            UpdateNoteBanner(
+              version: note.version,
+              onDismiss: () => setState(() => _note = null),
+            ),
           Expanded(child: _bubbleOrSettings()),
           SizedBox(width: restingSize, height: restingSize, child: mascot),
         ],

@@ -39,6 +39,7 @@ class SettingsPanel extends StatelessWidget {
     required this.installedPacks,
     required this.onChanged,
     required this.onClose,
+    required this.onCheckForUpdates,
     this.chooseFolder = fromTheFilesystem,
     super.key,
   });
@@ -54,6 +55,12 @@ class SettingsPanel extends StatelessWidget {
   final void Function(String key, String? value) onChanged;
 
   final VoidCallback onClose;
+
+  /// Asked for when the row's button is pressed. A manual check speaks for
+  /// itself through Sparkle/WinSparkle's own native dialogs — found or not,
+  /// found and installed — so nothing here waits on it or shows a result of
+  /// its own.
+  final VoidCallback onCheckForUpdates;
 
   final ChooseFolder chooseFolder;
 
@@ -145,6 +152,8 @@ class SettingsPanel extends StatelessWidget {
                       if (path != null) onChanged('claudeConfig', path);
                     },
                   ),
+                  const SizedBox(height: _padding),
+                  _Updates(onCheck: onCheckForUpdates),
                   if (trouble != null) ...[
                     const SizedBox(height: _padding),
                     _Trouble(text: saidOfMisread(tongue, trouble)),
@@ -297,6 +306,38 @@ class _Character extends StatelessWidget {
             style: const TextStyle(color: _faint, fontSize: 10),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// A row that asks for a check rather than showing a value — there is
+/// nothing here for Roäc himself to say. Found, current, or unreachable: any
+/// of those is Sparkle/WinSparkle's own dialog to raise, not this row's.
+class _Updates extends StatelessWidget {
+  const _Updates({required this.onCheck});
+
+  final VoidCallback onCheck;
+
+  @override
+  Widget build(BuildContext context) {
+    final tongue = Words.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(tongue.updatesLabel),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: OutlinedButton(
+            onPressed: onCheck,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: _ink,
+              side: const BorderSide(color: _wellEdge),
+            ),
+            child: Text(tongue.checkForUpdates),
+          ),
+        ),
       ],
     );
   }

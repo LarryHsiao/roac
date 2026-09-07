@@ -43,3 +43,9 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# WinSparkle's private signing key — dsa_pub.pem is committed and read by
+# windows/runner/Runner.rc; this half must never be. Lives only on the
+# machine that runs the Windows release build, the same way the Vaultwarden
+# item scripts/release_github.ps1 pulls it from does.
+dsa_priv.pem

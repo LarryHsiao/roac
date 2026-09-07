@@ -368,6 +368,30 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'Roäc\'s settings could not be saved ({trouble}).'**
   String settingsUnwritable(String trouble);
+
+  /// Settings panel: updatesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Updates'**
+  String get updatesLabel;
+
+  /// Settings panel: checkForUpdates.
+  ///
+  /// In en, this message translates to:
+  /// **'Check now'**
+  String get checkForUpdates;
+
+  /// Shown once, after a launch that landed on a newer version than the last one seen.
+  ///
+  /// In en, this message translates to:
+  /// **'Updated to v{version}'**
+  String updatedTo(String version);
+
+  /// Tooltip on the update-note banner's close button.
+  ///
+  /// In en, this message translates to:
+  /// **'Dismiss'**
+  String get dismissNote;
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {

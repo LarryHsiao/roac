@@ -183,4 +183,18 @@ class WordsZh extends Words {
   String settingsUnwritable(String trouble) {
     return 'Roäc 的設定存不了（$trouble）。';
   }
+
+  @override
+  String get updatesLabel => '更新';
+
+  @override
+  String get checkForUpdates => '立即檢查';
+
+  @override
+  String updatedTo(String version) {
+    return '已更新至 v$version';
+  }
+
+  @override
+  String get dismissNote => '關閉';
 }

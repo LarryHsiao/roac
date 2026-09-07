@@ -43,5 +43,9 @@
   "drawnCharacter": "Roäc（手繪）",
   "drawnCharacterNoPacks": "Roäc（手繪——尚未安裝角色包）",
   "claudeConfigUnset": "CLI 本身的設定",
-  "settingsUnwritable": "Roäc 的設定存不了（{trouble}）。"
+  "settingsUnwritable": "Roäc 的設定存不了（{trouble}）。",
+  "updatesLabel": "更新",
+  "checkForUpdates": "立即檢查",
+  "updatedTo": "已更新至 v{version}",
+  "dismissNote": "關閉"
 }

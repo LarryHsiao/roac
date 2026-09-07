@@ -10,6 +10,14 @@ import 'package:roac/settings_panel.dart';
 import 'package:roac/main.dart';
 import 'package:roac/roaming.dart';
 import 'package:roac/sprite.dart';
+import 'package:roac/update_note.dart';
+import 'package:roac/update_note_banner.dart';
+
+/// Neither of these ever reaches a real plugin channel: no test here cares
+/// about updates, so both stand in as plain no-ops.
+Future<void> _noCheck({required bool inBackground}) async {}
+Future<UpdateNoteState> _noUpdateNote() async =>
+    const UpdateNoteState(shouldShow: false, version: '');
 
 /// A desktop the mascot can stand on, standing in for the two plugins so the
 /// perch itself may be exercised without a window or a screen.
@@ -100,7 +108,11 @@ void main() {
 
   /// Raises the perch and lets its first placement read settle.
   Future<void> raise(WidgetTester tester) async {
-    await tester.pumpWidget(_speaking(const Perch()));
+    await tester.pumpWidget(
+      _speaking(
+        const Perch(checkForUpdates: _noCheck, updateNoteCheck: _noUpdateNote),
+      ),
+    );
     await settle(tester);
   }
 
@@ -167,7 +179,14 @@ void main() {
       ChooseFolder chooseFolder = _declines,
     }) async {
       await tester.pumpWidget(
-        _speaking(Perch(environment: environment, chooseFolder: chooseFolder)),
+        _speaking(
+          Perch(
+            environment: environment,
+            chooseFolder: chooseFolder,
+            checkForUpdates: _noCheck,
+            updateNoteCheck: _noUpdateNote,
+          ),
+        ),
       );
       await settle(tester);
       await tester.tap(find.byType(Sprite));
@@ -280,7 +299,15 @@ void main() {
     }
 
     Future<void> raiseAsking(WidgetTester tester, Asking asking) async {
-      await tester.pumpWidget(_speaking(Perch(asking: asking)));
+      await tester.pumpWidget(
+        _speaking(
+          Perch(
+            asking: asking,
+            checkForUpdates: _noCheck,
+            updateNoteCheck: _noUpdateNote,
+          ),
+        ),
+      );
       await settle(tester);
       await tester.tap(find.byType(Sprite));
       await settle(tester);
@@ -384,6 +411,119 @@ void main() {
       await settle(tester);
 
       expect(counsel.resumed, expected);
+    });
+  });
+
+  group('the update note', () {
+    Future<void> raiseWithNote(
+      WidgetTester tester,
+      UpdateNoteState state,
+    ) async {
+      await tester.pumpWidget(
+        _speaking(
+          Perch(checkForUpdates: _noCheck, updateNoteCheck: () async => state),
+        ),
+      );
+      await settle(tester);
+    }
+
+    testWidgets('a landed update is said once the bubble is opened', (
+      tester,
+    ) async {
+      const expected = true;
+      await raiseWithNote(
+        tester,
+        const UpdateNoteState(shouldShow: true, version: '2.0.0'),
+      );
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      final actual = find.textContaining('2.0.0').evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
+
+    testWidgets('nothing is said when there is no note to show', (
+      tester,
+    ) async {
+      const expected = false;
+      await raiseWithNote(
+        tester,
+        const UpdateNoteState(shouldShow: false, version: '2.0.0'),
+      );
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      final actual = find.byType(UpdateNoteBanner).evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
+
+    testWidgets('dismissing it puts it away for good', (tester) async {
+      const expected = false;
+      await raiseWithNote(
+        tester,
+        const UpdateNoteState(shouldShow: true, version: '2.0.0'),
+      );
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.tap(find.byIcon(Icons.close));
+      await settle(tester);
+      final actual = find.byType(UpdateNoteBanner).evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
+  });
+
+  group('checking for updates', () {
+    testWidgets('launch asks in the background, without being told to', (
+      tester,
+    ) async {
+      const expected = [true];
+      final calls = <bool>[];
+
+      await tester.pumpWidget(
+        _speaking(
+          Perch(
+            checkForUpdates: ({required inBackground}) async =>
+                calls.add(inBackground),
+            updateNoteCheck: _noUpdateNote,
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(calls, expected);
+    });
+
+    testWidgets("the settings panel's button asks in the foreground", (
+      tester,
+    ) async {
+      const expected = false;
+      final calls = <bool>[];
+
+      await tester.pumpWidget(
+        _speaking(
+          Perch(
+            checkForUpdates: ({required inBackground}) async =>
+                calls.add(inBackground),
+            updateNoteCheck: _noUpdateNote,
+          ),
+        ),
+      );
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.tap(find.byIcon(Icons.settings_outlined));
+      await settle(tester);
+      // The row sits inside the panel's own scroll view — not yet visible in
+      // a window this test never grows to settingsHeight, unlike the real
+      // app's own gate on that (see settings_panel_test.dart's fifth-row
+      // overflow test).
+      await tester.ensureVisible(find.text('Check now'));
+      await settle(tester);
+      await tester.tap(find.text('Check now'));
+      await settle(tester);
+
+      expect(calls.last, expected);
     });
   });
 }

@@ -292,5 +292,26 @@
         "type": "String"
       }
     }
+  },
+  "updatesLabel": "Updates",
+  "@updatesLabel": {
+    "description": "Settings panel: updatesLabel."
+  },
+  "checkForUpdates": "Check now",
+  "@checkForUpdates": {
+    "description": "Settings panel: checkForUpdates."
+  },
+  "updatedTo": "Updated to v{version}",
+  "@updatedTo": {
+    "description": "Shown once, after a launch that landed on a newer version than the last one seen.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "dismissNote": "Dismiss",
+  "@dismissNote": {
+    "description": "Tooltip on the update-note banner's close button."
   }
 }

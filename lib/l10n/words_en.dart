@@ -186,4 +186,18 @@ class WordsEn extends Words {
   String settingsUnwritable(String trouble) {
     return 'Roäc\'s settings could not be saved ($trouble).';
   }
+
+  @override
+  String get updatesLabel => 'Updates';
+
+  @override
+  String get checkForUpdates => 'Check now';
+
+  @override
+  String updatedTo(String version) {
+    return 'Updated to v$version';
+  }
+
+  @override
+  String get dismissNote => 'Dismiss';
 }
