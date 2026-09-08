@@ -266,6 +266,10 @@ void main() {
         'where?',
         '--add-dir',
         _notes,
+        '--model',
+        'sonnet',
+        '--effort',
+        'medium',
         '--disallowedTools',
         'Edit,MultiEdit,Write,NotebookEdit,Bash',
         '--output-format',
@@ -393,6 +397,29 @@ void main() {
         expect(elsewhere.contains(expected.join(' ')), expectedOfTheShell);
       },
     );
+
+    test('both machines are asked for the same model and effort', () {
+      const expected = ['--model', 'sonnet', '--effort', 'medium'];
+      const expectedOfTheShell = true;
+
+      final windows = summonsFor(
+        'where?',
+        notes: _notes,
+        onWindows: true,
+      ).arguments;
+      final elsewhere = summonsFor(
+        'where?',
+        notes: _notes,
+        onWindows: false,
+      ).arguments[1];
+      final at = windows.indexOf('--model');
+      final actual = at < 0
+          ? const <String>[]
+          : windows.sublist(at, at + expected.length);
+
+      expect(actual, expected);
+      expect(elsewhere.contains(expected.join(' ')), expectedOfTheShell);
+    });
   });
 
   test(

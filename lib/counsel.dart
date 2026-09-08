@@ -39,18 +39,26 @@ const _readOnly = [
   'Edit,MultiEdit,Write,NotebookEdit,Bash',
 ];
 
+/// The model Roäc asks the CLI to answer with, and how hard to think before
+/// answering — named rather than left to whatever a config directory would
+/// otherwise default to, so a question costs the same and reads the same
+/// regardless of which machine or which config it is asked from.
+const _model = ['--model', 'sonnet', '--effort', 'medium'];
+
 /// The same flags as one line, for the shell that takes a command rather than
-/// a list. Written from [_readOnly] and [_streaming] so neither can drift
-/// from what the list form asks for.
+/// a list. Written from [_model], [_readOnly] and [_streaming] so none can
+/// drift from what the list form asks for.
+final _modelSaid = _model.join(' ');
 final _readOnlySaid = _readOnly.join(' ');
 final _streamingSaid = _streaming.join(' ');
 
 /// A question put afresh, and one put to a conversation already begun.
 final _fresh =
-    'exec $_cli -p "\$1" --add-dir "\$2" $_readOnlySaid $_streamingSaid';
+    'exec $_cli -p "\$1" --add-dir "\$2" '
+    '$_modelSaid $_readOnlySaid $_streamingSaid';
 final _again =
     'exec $_cli -p "\$1" --add-dir "\$2" --resume "\$3" '
-    '$_readOnlySaid $_streamingSaid';
+    '$_modelSaid $_readOnlySaid $_streamingSaid';
 
 /// How a command is started — named so a test may stand in for the real shell.
 typedef Shell =
@@ -288,6 +296,7 @@ Summons summonsFor(
         '--add-dir',
         notes,
         if (resuming != null) ...['--resume', resuming],
+        ..._model,
         ..._readOnly,
         ..._streaming,
       ],
