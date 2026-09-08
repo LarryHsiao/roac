@@ -27,9 +27,12 @@ not once per release:
   moved into a Vaultwarden item named `roac-winsparkle-dsa` (the `password`
   field holding its base64) and deleted locally — the same shape as
   Orthanc's own `orthanc-winsparkle-dsa` item.
-- **macOS**: writes an EdDSA keypair to the signer's local keychain; the
-  public half then needs adding to `macos/Runner/Info.plist`, the same way
-  Orthanc's own was — not yet done here, since generating it needs a Mac.
+- **macOS**: an EdDSA keypair already sat in the signer's local keychain
+  (generated during Orthanc's own macOS setup — Sparkle's own guidance is one
+  signing key per publisher, not per app) and its public half is now in
+  `macos/Runner/Info.plist` as `SUPublicEDKey`. The private half stays in the
+  local keychain; a correctly single-base64-encoded backup lives in
+  Vaultwarden's `sparkle-eddsa-key` item.
 
 ## 1. Build and publish
 
@@ -113,9 +116,6 @@ Always `xmllint --noout appcast.xml` after a manual edit before committing.
 
 ## What's still owed before the first real release
 
-- **The macOS EdDSA key has not been generated at all** — that step needs a
-  Mac, and both `publish_macos.sh`'s and `ci_build_macos_dmg.sh`'s signing
-  steps depend on it.
 - **The six Apple-credential CI parameters are empty placeholders.** A
   Developer ID `.p12` (base64) and its password, an App Store Connect API
   key (base64) with its key id and issuer id, and a keychain password of

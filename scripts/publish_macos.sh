@@ -10,11 +10,10 @@
 # same Apple Developer identity and the same "apple-notarization" Vaultwarden
 # item, since it's one Apple ID notarizing more than one app.
 #
-# Written but not yet run: this repository has no Mac to run it on within
-# this session, and no release of Roäc has ever been cut. The macOS EdDSA
-# signing keypair (dart run auto_updater:generate_keys) also needs generating
-# on a Mac before this script's signing step will succeed — see
-# docs/releasing.md.
+# Written but not yet run: no release of Roäc has ever been cut. The macOS
+# EdDSA signing keypair already exists (shared with Orthanc, per Sparkle's own
+# guidance of one key per publisher) and its public half is wired into
+# macos/Runner/Info.plist — see docs/releasing.md.
 #
 # Usage:
 #   scripts/publish_macos.sh              # build, sign, notarize, staple
