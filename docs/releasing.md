@@ -122,8 +122,6 @@ Always `xmllint --noout appcast.xml` after a manual edit before committing.
   your choosing all need pasting into `Roac_Deploy`'s parameters directly in
   the TeamCity UI — never through chat, the same discipline the WinSparkle
   key and `GH_TOKEN` were handled with.
-- **No macOS build agent is connected to TeamCity** — `Roac_Deploy` will sit
-  queued until one is, independent of the credentials above.
 - **No release has ever been cut.** `pubspec.yaml` still reads `1.0.0+1`;
   the first real run of either pipeline is also the first real GitHub
   Release.
