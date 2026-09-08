@@ -266,6 +266,8 @@ void main() {
         'where?',
         '--add-dir',
         _notes,
+        '--disallowedTools',
+        'Edit,MultiEdit,Write,NotebookEdit,Bash',
         '--output-format',
         'stream-json',
         '--verbose',
@@ -362,6 +364,35 @@ void main() {
       expect(windows.sublist(windows.length - expected.length), expected);
       expect(elsewhere.endsWith(expected.join(' ')), expectedOfTheShell);
     });
+
+    test(
+      'both machines keep the CLI to reading, whatever the config allows',
+      () {
+        const expected = [
+          '--disallowedTools',
+          'Edit,MultiEdit,Write,NotebookEdit,Bash',
+        ];
+        const expectedOfTheShell = true;
+
+        final windows = summonsFor(
+          'where?',
+          notes: _notes,
+          onWindows: true,
+        ).arguments;
+        final elsewhere = summonsFor(
+          'where?',
+          notes: _notes,
+          onWindows: false,
+        ).arguments[1];
+        final at = windows.indexOf('--disallowedTools');
+        final actual = at < 0
+            ? const <String>[]
+            : windows.sublist(at, at + expected.length);
+
+        expect(actual, expected);
+        expect(elsewhere.contains(expected.join(' ')), expectedOfTheShell);
+      },
+    );
   });
 
   test(

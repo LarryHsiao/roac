@@ -29,14 +29,28 @@ const _streaming = [
   '--include-partial-messages',
 ];
 
+/// The flags that keep the CLI to reading and answering, whatever the config
+/// it is pointed at would otherwise let it do. A note is not something Roäc
+/// trusts: it may carry an instruction meant for the CLI rather than a fact
+/// meant for the reader, and the CLI has no way to tell those apart on its
+/// own. This is what makes "Roäc only reads" true regardless.
+const _readOnly = [
+  '--disallowedTools',
+  'Edit,MultiEdit,Write,NotebookEdit,Bash',
+];
+
 /// The same flags as one line, for the shell that takes a command rather than
-/// a list. Written from [_streaming] so the two cannot drift apart.
+/// a list. Written from [_readOnly] and [_streaming] so neither can drift
+/// from what the list form asks for.
+final _readOnlySaid = _readOnly.join(' ');
 final _streamingSaid = _streaming.join(' ');
 
 /// A question put afresh, and one put to a conversation already begun.
-final _fresh = 'exec $_cli -p "\$1" --add-dir "\$2" $_streamingSaid';
+final _fresh =
+    'exec $_cli -p "\$1" --add-dir "\$2" $_readOnlySaid $_streamingSaid';
 final _again =
-    'exec $_cli -p "\$1" --add-dir "\$2" --resume "\$3" $_streamingSaid';
+    'exec $_cli -p "\$1" --add-dir "\$2" --resume "\$3" '
+    '$_readOnlySaid $_streamingSaid';
 
 /// How a command is started — named so a test may stand in for the real shell.
 typedef Shell =
@@ -274,6 +288,7 @@ Summons summonsFor(
         '--add-dir',
         notes,
         if (resuming != null) ...['--resume', resuming],
+        ..._readOnly,
         ..._streaming,
       ],
     );
