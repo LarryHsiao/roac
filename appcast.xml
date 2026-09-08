@@ -4,5 +4,12 @@
         <title>Roäc</title>
         <description>Roäc release feed</description>
         <language>en</language>
+        <item>
+            <title>Version 1.0.1</title>
+            <sparkle:version>2</sparkle:version>
+            <sparkle:shortVersionString>1.0.1</sparkle:shortVersionString>
+            <pubDate>Tue, 08 Sep 2026 08:13:13 +0000</pubDate>
+            <enclosure url="https://github.com/LarryHsiao/roac/releases/download/v1.0.1/roac.dmg" sparkle:edSignature="h15yIWqQZHKwfF25s70gZXg7b4AptNj0Lu42D81UPw+8+Wr6mF+iaE6W53gUS38zXaUFoB0tfWwTlB/7HuMdCA==" sparkle:os="macos" length="21756481" type="application/octet-stream" />
+        </item>
     </channel>
 </rss>
