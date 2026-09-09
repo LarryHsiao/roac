@@ -158,6 +158,19 @@ class Perch extends StatefulWidget {
   State<Perch> createState() => _PerchState();
 }
 
+/// Which settings a question in flight is asked with: [live] once there is
+/// one, falling back to [begunAtLaunch] only until it lands.
+///
+/// A question asked before the first read completes must still be asked with
+/// something rather than nothing, so the read begun at launch stands in. But
+/// once a read has landed — including one refreshed after the settings panel
+/// writes a change — that is the one worth trusting: it is the only copy the
+/// settings panel ever updates, so reading it live is what lets a changed
+/// `claudeConfig` or `notes` reach the very next question with nothing to
+/// restart.
+Future<Settings> settledFor(Settings? live, Future<Settings> begunAtLaunch) =>
+    live == null ? begunAtLaunch : Future.value(live);
+
 class _PerchState extends State<Perch> with WindowListener {
   /// How often the cursor is sampled. While the pointer is off the sprite the
   /// window ignores mouse events outright, so its own events cannot report the
@@ -421,7 +434,7 @@ class _PerchState extends State<Perch> with WindowListener {
     // Waits on the reading rather than guessing at an empty path. A CLI run
     // with nowhere to run would fail with a complaint about a directory,
     // which says nothing to the person who only asked a question.
-    return Stream.fromFuture(_told).asyncExpand(
+    return Stream.fromFuture(settledFor(_settings, _told)).asyncExpand(
       (told) => askCounsel(
         question,
         resuming: resuming,
