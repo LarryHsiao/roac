@@ -189,10 +189,8 @@ void main() {
     test('one that will not open is named', () async {
       const expected = true;
       await write({'notes': '/elsewhere'});
-      await Process.run('chmod', ['000', world['ROAC_SETTINGS']!]);
-      addTearDown(
-        () => Process.runSync('chmod', ['644', world['ROAC_SETTINGS']!]),
-      );
+      await _shut(world['ROAC_SETTINGS']!);
+      addTearDown(() => _reopen(world['ROAC_SETTINGS']!));
 
       final settings = await settingsIn(world);
 
@@ -290,3 +288,26 @@ void main() {
     });
   });
 }
+
+/// Denies [path] to its own owner — a POSIX permission bit is inert on NTFS,
+/// so a chmod alone leaves the file readable on Windows and the test proving
+/// nothing. `icacls` is what actually shuts a file there. Denied narrowly to
+/// read data (`RD`), not the broader `R`: that also carries read-attributes,
+/// which would make the file look gone to `existsSync` rather than unopenable.
+///
+/// Checked rather than fired and forgotten: a silently-failed deny would
+/// leave the file readable, and the test would then fail on a mismatched
+/// flaw far from the setup that actually went wrong.
+Future<void> _shut(String path) async {
+  final result = Platform.isWindows
+      ? await Process.run('icacls', [path, '/deny', 'Everyone:(RD)'])
+      : await Process.run('chmod', ['000', path]);
+  if (result.exitCode != 0) {
+    throw StateError('could not shut $path: ${result.stderr}');
+  }
+}
+
+/// Undoes [_shut], so the fixture's own teardown can still delete the file.
+void _reopen(String path) => Platform.isWindows
+    ? Process.runSync('icacls', [path, '/remove:d', 'Everyone'])
+    : Process.runSync('chmod', ['644', path]);
