@@ -32,6 +32,7 @@ class Bubble extends StatelessWidget {
   const Bubble({
     required this.counsel,
     required this.waiting,
+    required this.asked,
     required this.onAsk,
     required this.onWanting,
     required this.onSettings,
@@ -44,6 +45,11 @@ class Bubble extends StatelessWidget {
 
   /// Whether Roäc is presently thinking.
   final bool waiting;
+
+  /// The question [counsel] or [waiting] answers, so the reader sees what was
+  /// asked beside what came back rather than the answer alone. Null before
+  /// the first question of a fresh bubble.
+  final String? asked;
 
   final ValueChanged<String> onAsk;
 
@@ -73,6 +79,7 @@ class Bubble extends StatelessWidget {
             child: _Said(
               counsel: counsel,
               waiting: waiting,
+              asked: asked,
               opening: opening,
               onWanting: onWanting,
             ),
@@ -110,43 +117,92 @@ class _Said extends StatelessWidget {
   const _Said({
     required this.counsel,
     required this.waiting,
+    required this.asked,
     required this.opening,
     required this.onWanting,
   });
 
   final Counsel? counsel;
   final bool waiting;
+  final String? asked;
   final Opening opening;
   final Wanting onWanting;
 
   @override
   Widget build(BuildContext context) {
     final tongue = Words.of(context);
-    if (waiting) {
-      return Row(
-        children: [
-          const SizedBox(
-            width: 14,
-            height: 14,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-          const SizedBox(width: _padding),
-          Text(tongue.thinking, style: const TextStyle(color: _faint)),
-        ],
-      );
-    }
-    return switch (counsel) {
-      null => Text(tongue.invitation, style: const TextStyle(color: _faint)),
-      Answer(:final words) => _Rendered(
-        words: words,
-        opening: opening,
-        onWanting: onWanting,
+    final said = waiting
+        ? Row(
+            children: [
+              const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+              const SizedBox(width: _padding),
+              Text(tongue.thinking, style: const TextStyle(color: _faint)),
+            ],
+          )
+        : switch (counsel) {
+            null => Text(
+              tongue.invitation,
+              style: const TextStyle(color: _faint),
+            ),
+            Answer(:final words) => _Rendered(
+              words: words,
+              opening: opening,
+              onWanting: onWanting,
+            ),
+            final Trouble trouble => _Plain(
+              words: saidOfTrouble(tongue, trouble),
+              colour: _alarm,
+            ),
+          };
+    final asked = this.asked;
+    if (asked == null) return said;
+    // The bubble's own Expanded already gives [said] the room it wants when
+    // there is nothing above it; once [_Asked] takes a line of that room,
+    // [said] needs its own Expanded to still claim what is left, inside the
+    // Column that now stands between it and the bubble's.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _Asked(asked),
+        const SizedBox(height: _padding / 2),
+        Expanded(child: said),
+      ],
+    );
+  }
+}
+
+/// The question a shown answer, trouble, or "still thinking" belongs to.
+///
+/// Dimmer than what Roäc says himself, and quoted by a rule at its side
+/// rather than by punctuation, so it reads as what was put to him rather than
+/// as more of his own words.
+class _Asked extends StatelessWidget {
+  const _Asked(this.words);
+
+  final String words;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(left: _padding * 2 / 3),
+      decoration: const BoxDecoration(
+        border: Border(
+          left: BorderSide(color: _edge, width: _edgeWidth),
+        ),
       ),
-      final Trouble trouble => _Plain(
-        words: saidOfTrouble(tongue, trouble),
-        colour: _alarm,
+      child: Text(
+        words,
+        style: const TextStyle(
+          color: _faint,
+          fontStyle: FontStyle.italic,
+          height: 1.35,
+        ),
       ),
-    };
+    );
   }
 }
 
@@ -324,14 +380,37 @@ class _Plain extends StatelessWidget {
 }
 
 /// The field the question is put through.
-class _Asking extends StatelessWidget {
+///
+/// Empties itself once a question is put — it has already been asked, and is
+/// on its way into the bubble above; keeping it there would only leave the
+/// reader to clear it themselves before the next one.
+class _Asking extends StatefulWidget {
   const _Asking({required this.onAsk});
 
   final ValueChanged<String> onAsk;
 
   @override
+  State<_Asking> createState() => _AskingState();
+}
+
+class _AskingState extends State<_Asking> {
+  final _typed = TextEditingController();
+
+  @override
+  void dispose() {
+    _typed.dispose();
+    super.dispose();
+  }
+
+  void _submit(String question) {
+    widget.onAsk(question);
+    _typed.clear();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: _typed,
       autofocus: true,
       style: const TextStyle(color: _ink),
       cursorColor: _edge,
@@ -346,7 +425,7 @@ class _Asking extends StatelessWidget {
           borderSide: BorderSide(color: _edge),
         ),
       ),
-      onSubmitted: onAsk,
+      onSubmitted: _submit,
     );
   }
 }

@@ -11,14 +11,17 @@ void main() {
     WidgetTester tester, {
     Counsel? counsel,
     bool waiting = false,
+    String? asked,
     Opening opening = _nowhere,
     Wanting onWanting = _grantNothing,
+    ValueChanged<String> onAsk = _sayNothing,
   }) => tester.pumpWidget(
     _speaking(
       Bubble(
         counsel: counsel,
         waiting: waiting,
-        onAsk: (_) {},
+        asked: asked,
+        onAsk: onAsk,
         onWanting: onWanting,
         onSettings: () {},
         opening: opening,
@@ -53,6 +56,39 @@ void main() {
     );
 
     expect(actual, expected);
+  });
+
+  testWidgets('what was asked is shown beside what Roäc said back', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(
+      tester,
+      asked: 'where did I write about the budget',
+      counsel: const Answer('in a note from June'),
+    );
+    final actual = shown('where did I write about the budget');
+
+    expect(actual, expected);
+  });
+
+  testWidgets('a question put through the field empties it once asked', (
+    tester,
+  ) async {
+    const expected = '';
+
+    var last = '';
+    await show(tester, onAsk: (question) => last = question);
+    await tester.enterText(find.byType(TextField), 'a question');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    final actual = tester
+        .widget<TextField>(find.byType(TextField))
+        .controller!
+        .text;
+
+    expect(actual, expected);
+    expect(last, 'a question');
   });
 
   testWidgets('a long answer is given room to scroll rather than being cut', (
@@ -254,6 +290,9 @@ Future<bool> _nowhere(Uri _) async => false;
 
 /// A window that grants no room, for the tests that are not about room.
 void _grantNothing(double _) {}
+
+/// Asked of nothing, for the tests that are not about asking.
+void _sayNothing(String _) {}
 
 /// The app root the widgets stand in, carrying the tongues they read their
 /// words from. Without these a bubble finds no Words and will not build.

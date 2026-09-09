@@ -220,6 +220,10 @@ class _PerchState extends State<Perch> with WindowListener {
   /// from it rather than beginning again. Forgotten when the bubble shuts.
   String? _conversation;
 
+  /// The question [_counsel] or [_waiting] answers, so the bubble can show it
+  /// beside what came back. Null before the first question of a fresh bubble.
+  String? _asked;
+
   /// The character being worn, if a pack was found and could be read.
   Character? _worn;
 
@@ -629,6 +633,7 @@ class _PerchState extends State<Perch> with WindowListener {
       _speaking = false;
       _waiting = false;
       _counsel = null;
+      _asked = null;
       _settingsOpen = false;
     });
     await _standAs(const Size(restingSize, restingSize));
@@ -691,6 +696,7 @@ class _PerchState extends State<Perch> with WindowListener {
     setState(() {
       _waiting = true;
       _counsel = null;
+      _asked = question;
     });
     _listening = _asking(question, resuming: _conversation).listen(_heard);
   }
@@ -751,6 +757,7 @@ class _PerchState extends State<Perch> with WindowListener {
     return Bubble(
       counsel: _counsel,
       waiting: _waiting,
+      asked: _asked,
       onAsk: _ask,
       onWanting: _grantRoom,
       onSettings: _openSettings,

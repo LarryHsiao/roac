@@ -68,6 +68,7 @@ void main() {
           body: Bubble(
             counsel: null,
             waiting: false,
+            asked: null,
             onAsk: _asks,
             onWanting: _wants,
             onSettings: _settled,

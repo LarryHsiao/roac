@@ -412,6 +412,49 @@ void main() {
 
       expect(counsel.resumed, expected);
     });
+
+    testWidgets('what was asked is shown beside the answer, field emptied', (
+      tester,
+    ) async {
+      const expected = (asked: true, fieldEmpty: true);
+      final counsel = counselThat();
+
+      await raiseAsking(tester, counsel.asking);
+      await tester.enterText(find.byType(TextField), 'a question');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      counsel.saying.add(const Answer('said'));
+      await settle(tester);
+      final actual = (
+        asked: find.text('a question').evaluate().isNotEmpty,
+        fieldEmpty: tester
+            .widget<TextField>(find.byType(TextField))
+            .controller!
+            .text
+            .isEmpty,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('shutting the bubble forgets what was asked', (tester) async {
+      const expected = false;
+      final counsel = counselThat();
+
+      await raiseAsking(tester, counsel.asking);
+      await tester.enterText(find.byType(TextField), 'a question');
+      await tester.testTextInput.receiveAction(TextInputAction.done);
+      await settle(tester);
+      counsel.saying.add(const Answer('said'));
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      final actual = find.text('a question').evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
   });
 
   group('the update note', () {
