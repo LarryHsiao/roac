@@ -15,6 +15,18 @@ class WordsEn extends Words {
   String get invitation => 'Ask me what you have written down.';
 
   @override
+  String get notesMissing =>
+      'Your notes folder is gone. Open settings (the gear) and choose one that still exists.';
+
+  @override
+  String get claudeConfigMissing =>
+      'The Claude config you named no longer exists. Open settings and choose one, or clear it.';
+
+  @override
+  String get writeHint =>
+      'If this needed a change to your notes, turn on \"May write\" in settings.';
+
+  @override
   String get askHint => 'Ask Roäc…';
 
   @override

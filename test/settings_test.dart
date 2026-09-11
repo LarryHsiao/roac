@@ -356,6 +356,57 @@ void main() {
       expect(trouble != null, expected);
     });
   });
+
+  group('whether the folders he was told about are still there', () {
+    test('the notes folder, when it is', () async {
+      const expected = false;
+
+      final settings = await settingsIn({...world, 'ROAC_NOTES': kept.path});
+
+      expect(settings.notesMissing, expected);
+    });
+
+    test('the notes folder, when it has been moved or removed', () async {
+      const expected = true;
+
+      final settings = await settingsIn({
+        ...world,
+        'ROAC_NOTES': '${kept.path}/gone',
+      });
+
+      expect(settings.notesMissing, expected);
+    });
+
+    test('a Claude config, when nothing names one', () async {
+      const expected = false;
+
+      final settings = await settingsIn(world);
+
+      expect(settings.claudeConfigMissing, expected);
+    });
+
+    test('a Claude config, when the one named is', () async {
+      const expected = false;
+
+      final settings = await settingsIn({
+        ...world,
+        'ROAC_CLAUDE_CONFIG': kept.path,
+      });
+
+      expect(settings.claudeConfigMissing, expected);
+    });
+
+    test('a Claude config, when the one named has since gone', () async {
+      const expected = true;
+
+      final settings = await settingsIn({
+        ...world,
+        'ROAC_CLAUDE_CONFIG': '${kept.path}/gone',
+      });
+
+      expect(settings.claudeConfigMissing, expected);
+    });
+  });
 }
 
 /// Denies [path] to its own owner — a POSIX permission bit is inert on NTFS,

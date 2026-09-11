@@ -771,6 +771,7 @@ class _PerchState extends State<Perch> with WindowListener {
       onAsk: _ask,
       onWanting: _grantRoom,
       onSettings: _openSettings,
+      settings: settings,
     );
   }
 

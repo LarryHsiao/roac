@@ -100,6 +100,19 @@ final class Settings {
   /// string it is carried as.
   bool get mayAct => edits.value == 'true';
 
+  /// Whether the notes folder Roäc was told about is not there to be read.
+  /// Checked fresh each time, rather than once at the moment it was told,
+  /// since a folder named minutes ago may since have been moved or removed.
+  bool get notesMissing => !Directory(notes.value).existsSync();
+
+  /// Whether the Claude config Roäc was told about is not there to be used.
+  /// Null when nothing names one, which is no failure — there is nothing to
+  /// be missing.
+  bool get claudeConfigMissing {
+    final named = claudeConfig;
+    return named != null && !Directory(named.value).existsSync();
+  }
+
   /// Why the settings file was passed over, where there was one to pass over.
   ///
   /// Null when it read cleanly, and null when there was none at all: a file

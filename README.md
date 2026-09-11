@@ -138,6 +138,28 @@ never disagree. Without that repo installed at the resolved path, the write
 half of the toggle still works; asking Roäc to send a handoff will not, since
 there is nothing at that path to run.
 
+### When a folder has gone missing
+
+A notes folder or a named Claude config is only as good as its being there.
+Before anything has been asked, the bubble checks both: a notes folder that
+does not exist replaces the ordinary invitation with a plain nudge to open
+settings and choose one that does; a named Claude config that has gone
+missing gets the same, once notes are fine. Neither check blocks a question
+put anyway. If one is put regardless, `askCounsel` still tries to launch the
+CLI rooted in the missing folder and fails outright — a working directory
+that does not exist is not something any platform's process launch survives
+— so the trouble that comes back is said the same way, rather than passing
+on the bare `ProcessException` that launch actually threw. This is not a
+guess at the cause the way the write-toggle hint below is: a missing working
+directory fails a process launch every time, so naming it plainly costs
+nothing the raw exception would have been more honest about.
+
+A trouble that comes back while **May write** is off carries one more line:
+a reminder that the toggle exists, in case the question wanted a change. It
+is a nudge, not a diagnosis — Roäc does not read the CLI's own words to guess
+whether a denied write is truly what happened, so the line appears whenever
+he could not act and stood read-only, whatever the trouble actually was.
+
 ## Running
 
 ```sh
@@ -147,7 +169,7 @@ flutter build macos --debug   # or build, then open build/macos/Build/Products/D
 flutter run -d windows        # the same, on Windows
 flutter build windows --debug # then run build\windows\x64\runner\Debug\roac.exe
 
-flutter test                  # 193 tests
+flutter test                  # 208 tests
 flutter analyze
 ```
 

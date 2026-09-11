@@ -109,6 +109,24 @@ abstract class Words {
   /// **'Ask me what you have written down.'**
   String get invitation;
 
+  /// Shown in place of the invitation when the notes folder does not exist.
+  ///
+  /// In en, this message translates to:
+  /// **'Your notes folder is gone. Open settings (the gear) and choose one that still exists.'**
+  String get notesMissing;
+
+  /// Shown in place of the invitation when a named Claude config folder does not exist.
+  ///
+  /// In en, this message translates to:
+  /// **'The Claude config you named no longer exists. Open settings and choose one, or clear it.'**
+  String get claudeConfigMissing;
+
+  /// Added beneath a trouble when Roäc could not act, and the write toggle was off.
+  ///
+  /// In en, this message translates to:
+  /// **'If this needed a change to your notes, turn on \"May write\" in settings.'**
+  String get writeHint;
+
   /// The placeholder in the field a question is typed into.
   ///
   /// In en, this message translates to:

@@ -8,6 +8,18 @@
   "@invitation": {
     "description": "Shown in the bubble before anything has been asked."
   },
+  "notesMissing": "Your notes folder is gone. Open settings (the gear) and choose one that still exists.",
+  "@notesMissing": {
+    "description": "Shown in place of the invitation when the notes folder does not exist."
+  },
+  "claudeConfigMissing": "The Claude config you named no longer exists. Open settings and choose one, or clear it.",
+  "@claudeConfigMissing": {
+    "description": "Shown in place of the invitation when a named Claude config folder does not exist."
+  },
+  "writeHint": "If this needed a change to your notes, turn on \"May write\" in settings.",
+  "@writeHint": {
+    "description": "Added beneath a trouble when Roäc could not act, and the write toggle was off."
+  },
   "askHint": "Ask Roäc…",
   "@askHint": {
     "description": "The placeholder in the field a question is typed into."
