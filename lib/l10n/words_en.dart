@@ -188,6 +188,15 @@ class WordsEn extends Words {
   }
 
   @override
+  String get editsLabel => 'May write';
+
+  @override
+  String get editsOn => 'may edit your notes, and send a handoff';
+
+  @override
+  String get editsOff => 'reads only';
+
+  @override
   String get updatesLabel => 'Updates';
 
   @override

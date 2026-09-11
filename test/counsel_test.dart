@@ -169,10 +169,11 @@ void main() {
       reap: _noReap,
     ).drain<void>();
 
+    final at = resumed.indexOf('--resume');
     final actual = (
-      fresh: fresh[1].contains('--resume'),
-      resumed: resumed[1].contains('--resume'),
-      carried: resumed.last,
+      fresh: fresh.contains('--resume'),
+      resumed: resumed.contains('--resume'),
+      carried: at < 0 ? '' : resumed[at + 1],
     );
 
     expect(actual, expected);
@@ -202,7 +203,7 @@ void main() {
             },
       ).drain<void>();
 
-      expect(given.sublist(2), expectedArguments);
+      expect(given.sublist(2, 5), expectedArguments);
     },
   );
 
@@ -255,6 +256,64 @@ void main() {
       ).drain<void>();
 
       expect(given, expected);
+    });
+  });
+
+  group('the handoff hook, when the door is open', () {
+    test('follows the Claude config Roäc was told', () async {
+      const expected = [
+        'Bash(printf:*)',
+        'Bash(/Users/someone/.claude-work/hooks/handoff.sh:*)',
+      ];
+      final claude = _Claude(says: [finished()]);
+      late List<String> given;
+
+      await askCounsel(
+        'where?',
+        notes: _notes,
+        claudeConfig: '/Users/someone/.claude-work',
+        mayAct: true,
+        onWindows: true,
+        reap: _noReap,
+        shell:
+            (
+              String _,
+              List<String> arguments, {
+              String? workingDirectory,
+              Map<String, String>? environment,
+            }) async {
+              given = arguments;
+              return claude;
+            },
+      ).drain<void>();
+      final at = given.indexOf('--allowedTools');
+      final actual = at < 0 ? '' : given[at + 1];
+
+      expect(expected.every(actual.contains), true);
+    });
+
+    test('a hook path bearing a space reaches the CLI whole', () {
+      const hook =
+          r'C:\Users\someone\Library\Application Support\claude'
+          r'\hooks\handoff.sh';
+      const expected = true;
+
+      final arguments = summonsFor(
+        'where?',
+        notes: _notes,
+        onWindows: false,
+        mayAct: true,
+        hook: hook,
+      ).arguments;
+      final actual = arguments.any(
+        (argument) => argument.contains('Bash($hook:*)'),
+      );
+
+      expect(actual, expected);
+      // The command template itself never carries the hook path — it is
+      // passed as its own argument, so a space in it cannot be split apart
+      // by the shell before it reaches "${@:3}".
+      expect(arguments[1].contains(hook), false);
     });
   });
 
@@ -352,7 +411,6 @@ void main() {
         '--verbose',
         '--include-partial-messages',
       ];
-      const expectedOfTheShell = true;
 
       final windows = summonsFor(
         'where?',
@@ -363,10 +421,10 @@ void main() {
         'where?',
         notes: _notes,
         onWindows: false,
-      ).arguments[1];
+      ).arguments;
 
       expect(windows.sublist(windows.length - expected.length), expected);
-      expect(elsewhere.endsWith(expected.join(' ')), expectedOfTheShell);
+      expect(elsewhere.sublist(elsewhere.length - expected.length), expected);
     });
 
     test(
@@ -376,49 +434,71 @@ void main() {
           '--disallowedTools',
           'Edit,MultiEdit,Write,NotebookEdit,Bash',
         ];
-        const expectedOfTheShell = true;
 
-        final windows = summonsFor(
-          'where?',
-          notes: _notes,
-          onWindows: true,
-        ).arguments;
-        final elsewhere = summonsFor(
-          'where?',
-          notes: _notes,
-          onWindows: false,
-        ).arguments[1];
-        final at = windows.indexOf('--disallowedTools');
-        final actual = at < 0
-            ? const <String>[]
-            : windows.sublist(at, at + expected.length);
+        for (final onWindows in [true, false]) {
+          final arguments = summonsFor(
+            'where?',
+            notes: _notes,
+            onWindows: onWindows,
+          ).arguments;
+          final at = arguments.indexOf('--disallowedTools');
+          final actual = at < 0
+              ? const <String>[]
+              : arguments.sublist(at, at + expected.length);
 
-        expect(actual, expected);
-        expect(elsewhere.contains(expected.join(' ')), expectedOfTheShell);
+          expect(actual, expected, reason: 'onWindows: $onWindows');
+        }
       },
     );
 
+    test('the open door lets the CLI change what it reads, bounded to notes '
+        'and the handoff hook', () {
+      const expected = [
+        '--permission-mode',
+        'acceptEdits',
+        '--allowedTools',
+        'Edit,MultiEdit,Write,NotebookEdit,'
+            'Bash(printf:*),Bash(/some/hook.sh:*)',
+      ];
+
+      for (final onWindows in [true, false]) {
+        final arguments = summonsFor(
+          'where?',
+          notes: _notes,
+          onWindows: onWindows,
+          mayAct: true,
+          hook: '/some/hook.sh',
+        ).arguments;
+        final at = arguments.indexOf('--permission-mode');
+        final actual = at < 0
+            ? const <String>[]
+            : arguments.sublist(at, at + expected.length);
+
+        expect(actual, expected, reason: 'onWindows: $onWindows');
+        expect(
+          arguments.contains('--disallowedTools'),
+          false,
+          reason: 'onWindows: $onWindows',
+        );
+      }
+    });
+
     test('both machines are asked for the same model and effort', () {
       const expected = ['--model', 'sonnet', '--effort', 'medium'];
-      const expectedOfTheShell = true;
 
-      final windows = summonsFor(
-        'where?',
-        notes: _notes,
-        onWindows: true,
-      ).arguments;
-      final elsewhere = summonsFor(
-        'where?',
-        notes: _notes,
-        onWindows: false,
-      ).arguments[1];
-      final at = windows.indexOf('--model');
-      final actual = at < 0
-          ? const <String>[]
-          : windows.sublist(at, at + expected.length);
+      for (final onWindows in [true, false]) {
+        final arguments = summonsFor(
+          'where?',
+          notes: _notes,
+          onWindows: onWindows,
+        ).arguments;
+        final at = arguments.indexOf('--model');
+        final actual = at < 0
+            ? const <String>[]
+            : arguments.sublist(at, at + expected.length);
 
-      expect(actual, expected);
-      expect(elsewhere.contains(expected.join(' ')), expectedOfTheShell);
+        expect(actual, expected, reason: 'onWindows: $onWindows');
+      }
     });
   });
 

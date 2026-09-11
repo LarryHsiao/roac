@@ -7,6 +7,7 @@ Settings _settings({String claudeConfig = '/config'}) => Settings(
   packs: const Chosen('/packs', Told.byDefault),
   pack: null,
   claudeConfig: Chosen(claudeConfig, Told.file),
+  edits: const Chosen('false', Told.byDefault),
   trouble: null,
 );
 

@@ -33,10 +33,30 @@ const _streaming = [
 /// it is pointed at would otherwise let it do. A note is not something Roäc
 /// trusts: it may carry an instruction meant for the CLI rather than a fact
 /// meant for the reader, and the CLI has no way to tell those apart on its
-/// own. This is what makes "Roäc only reads" true regardless.
+/// own. This is what makes "Roäc only reads" true regardless — the door
+/// [_mayAct] opens is never the default; a person opens it on purpose.
 const _readOnly = [
   '--disallowedTools',
   'Edit,MultiEdit,Write,NotebookEdit,Bash',
+];
+
+/// The flags that let the CLI change what it reads, once a person has said
+/// so through the settings panel. `acceptEdits` accepts a file write without
+/// asking, but only inside the working directory `askCounsel` already sets
+/// to the notes folder — a path outside it falls to a permission prompt
+/// nothing here can answer, which is a denial, for the three file tools
+/// named here. Bash is narrowed to two commands rather than closed outright
+/// — `printf`, to pipe a body in, and [hook] itself — but that narrowing is
+/// by command name, not by what the command then does with a shell's own
+/// redirection: `printf` itself writes nowhere, yet the same permission that
+/// allows the `/handoff` skill's `printf … | hook` also allows any other
+/// `printf` invocation the CLI is asked to run, redirect included. The
+/// working-directory bound above holds for edits; it does not reach here.
+List<String> _mayAct(String hook) => [
+  '--permission-mode',
+  'acceptEdits',
+  '--allowedTools',
+  'Edit,MultiEdit,Write,NotebookEdit,Bash(printf:*),Bash($hook:*)',
 ];
 
 /// The model Roäc asks the CLI to answer with, and how hard to think before
@@ -45,20 +65,14 @@ const _readOnly = [
 /// regardless of which machine or which config it is asked from.
 const _model = ['--model', 'sonnet', '--effort', 'medium'];
 
-/// The same flags as one line, for the shell that takes a command rather than
-/// a list. Written from [_model], [_readOnly] and [_streaming] so none can
-/// drift from what the list form asks for.
-final _modelSaid = _model.join(' ');
-final _readOnlySaid = _readOnly.join(' ');
-final _streamingSaid = _streaming.join(' ');
-
-/// A question put afresh, and one put to a conversation already begun.
-final _fresh =
-    'exec $_cli -p "\$1" --add-dir "\$2" '
-    '$_modelSaid $_readOnlySaid $_streamingSaid';
-final _again =
-    'exec $_cli -p "\$1" --add-dir "\$2" --resume "\$3" '
-    '$_modelSaid $_readOnlySaid $_streamingSaid';
+/// The one command run on a machine that needs a shell. The question and the
+/// notes travel as `$1`/`$2`, exactly as [Summons]'s own doc names; every
+/// flag after them travels as `"${@:3}"`, which — kept inside its own quotes
+/// — expands to each flag [summonsFor] built as its own word, the same way
+/// `"$1"`/`"$2"` keep the question and the notes whole. Flags are never
+/// spliced into this string, so neither [_readOnly] nor [_mayAct] can widen
+/// or narrow what the CLI is allowed by a quoting mistake.
+const _said = 'exec $_cli -p "\$1" --add-dir "\$2" "\${@:3}"';
 
 /// How a command is started — named so a test may stand in for the real shell.
 typedef Shell =
@@ -153,6 +167,14 @@ final class Complaint extends Trouble {
 /// app might one day run. Left alone when null: the CLI then falls back on
 /// whichever config it would have used had Roäc never asked.
 ///
+/// [mayAct] opens the door [_mayAct] describes — off by default, and only
+/// ever on because a person turned it on in the settings panel. [handoffHook]
+/// names the `/handoff` skill's own hook script to allow through Bash when
+/// the door is open; left alone, it is derived from [claudeConfig] — the same
+/// config directory either way, so the skill and the hook it calls never
+/// disagree — falling back to `~/.claude` when no config was named, which is
+/// where the CLI's own default config lives.
+///
 /// The CLI is free to shell out for a tool call of its own; killing it alone
 /// would orphan that rather than end it. [reap] is asked to reach for
 /// whatever it spawned, every time it is killed — see [_reap] for how.
@@ -164,6 +186,8 @@ Stream<Counsel> askCounsel(
   Duration silence = _silence,
   bool? onWindows,
   String? claudeConfig,
+  bool mayAct = false,
+  String? handoffHook,
   Reap reap = _reap,
 }) {
   final told = StreamController<Counsel>();
@@ -201,6 +225,8 @@ Stream<Counsel> askCounsel(
         notes: notes,
         resuming: resuming,
         onWindows: windows,
+        mayAct: mayAct,
+        hook: handoffHook ?? _handoffHookFor(claudeConfig),
       );
       claude = await shell(
         summons.executable,
@@ -260,8 +286,21 @@ Future<void> _reap(int pid, {required bool onWindows}) async {
 /// What to run, and what to hand it.
 typedef Summons = ({String executable, List<String> arguments});
 
+/// Where the `/handoff` mailbox's hook lives, so a note may be let post to
+/// it once [mayAct] is open. Follows [claudeConfig] — the same config
+/// directory the CLI itself is pointed at, so the skill and the hook it
+/// calls never disagree — falling back to `~/.claude`, the CLI's own
+/// default, when nothing names one.
+String _handoffHookFor(String? claudeConfig) {
+  final home =
+      Platform.environment['HOME'] ?? Platform.environment['USERPROFILE'] ?? '';
+  return '${claudeConfig ?? '$home/.claude'}/hooks/handoff.sh';
+}
+
 /// How [question] is put on this machine, carrying [resuming] where a
-/// conversation is being taken up again.
+/// conversation is being taken up again, and open to change what it reads —
+/// bounded to [notes] and to the `/handoff` mailbox at [hook] — wherever
+/// [mayAct] says so.
 ///
 /// **Windows is given no shell.** A windowed app there inherits the whole of
 /// the user's PATH from the registry, and inheriting almost none of it is the
@@ -276,42 +315,36 @@ typedef Summons = ({String executable, List<String> arguments});
 /// **Elsewhere a login shell is needed**, because a windowed app inherits
 /// almost none of the user's PATH and would not find the CLI at all. It
 /// `exec`s the CLI so that the CLI takes the shell's own place, which buys
-/// back the same handle Windows gets for nothing. `$0` is the name the shell
-/// wears; the question, [notes] and the session follow it.
+/// back the same handle Windows gets for nothing — see [_said]. `$0` is the
+/// name the shell wears; the question and [notes] follow it, then every flag
+/// this machine and [mayAct] call for.
 ///
-/// Neither form ever splices. The question is an argument in both, so nothing
-/// it contains — a quote, a semicolon, an `rm -rf` — can change what runs.
+/// Neither form ever splices. The question is an argument in both, and so is
+/// every flag, so nothing any of them contain — a quote, a semicolon, an
+/// `rm -rf` — can change what runs.
 Summons summonsFor(
   String question, {
   required String notes,
   String? resuming,
   required bool onWindows,
+  bool mayAct = false,
+  String hook = '',
 }) {
+  final flags = [
+    if (resuming != null) ...['--resume', resuming],
+    ..._model,
+    ...(mayAct ? _mayAct(hook) : _readOnly),
+    ..._streaming,
+  ];
   if (onWindows) {
     return (
       executable: _cli,
-      arguments: [
-        '-p',
-        question,
-        '--add-dir',
-        notes,
-        if (resuming != null) ...['--resume', resuming],
-        ..._model,
-        ..._readOnly,
-        ..._streaming,
-      ],
+      arguments: ['-p', question, '--add-dir', notes, ...flags],
     );
   }
   return (
     executable: '/bin/zsh',
-    arguments: [
-      '-lc',
-      resuming == null ? _fresh : _again,
-      'roac',
-      question,
-      notes,
-      ?resuming,
-    ],
+    arguments: ['-lc', _said, 'roac', question, notes, ...flags],
   );
 }
 

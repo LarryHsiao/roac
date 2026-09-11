@@ -369,6 +369,24 @@ abstract class Words {
   /// **'Roäc\'s settings could not be saved ({trouble}).'**
   String settingsUnwritable(String trouble);
 
+  /// Settings panel: editsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'May write'**
+  String get editsLabel;
+
+  /// Settings panel: editsOn.
+  ///
+  /// In en, this message translates to:
+  /// **'may edit your notes, and send a handoff'**
+  String get editsOn;
+
+  /// Settings panel: editsOff.
+  ///
+  /// In en, this message translates to:
+  /// **'reads only'**
+  String get editsOff;
+
   /// Settings panel: updatesLabel.
   ///
   /// In en, this message translates to:

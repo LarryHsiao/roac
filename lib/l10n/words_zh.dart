@@ -185,6 +185,15 @@ class WordsZh extends Words {
   }
 
   @override
+  String get editsLabel => '可寫入';
+
+  @override
+  String get editsOn => '可修改筆記，並送出 handoff';
+
+  @override
+  String get editsOff => '僅供閱讀';
+
+  @override
   String get updatesLabel => '更新';
 
   @override

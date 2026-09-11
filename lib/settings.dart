@@ -70,6 +70,7 @@ final class Settings {
     required this.packs,
     required this.pack,
     required this.claudeConfig,
+    required this.edits,
     this.trouble,
   });
 
@@ -88,6 +89,16 @@ final class Settings {
   /// process. Null when nothing names one, which is no failure: the CLI
   /// falls back on whichever config it would use if Roäc had never asked.
   final Chosen? claudeConfig;
+
+  /// Whether Roäc may change what he reads, rather than only read it. Born
+  /// knowing `false`: a note is not something Roäc trusts by default, since
+  /// it may carry an instruction meant for the CLI rather than a fact meant
+  /// for the reader — see the reasoning in `lib/counsel.dart`.
+  final Chosen edits;
+
+  /// [edits] as the bool it actually governs, so no caller re-parses the
+  /// string it is carried as.
+  bool get mayAct => edits.value == 'true';
 
   /// Why the settings file was passed over, where there was one to pass over.
   ///
@@ -136,6 +147,7 @@ Future<Settings> settingsIn(Map<String, String> environment) async {
       environment['ROAC_CLAUDE_CONFIG'],
       told['claudeConfig'],
     ),
+    edits: _chosenFlag(environment['ROAC_EDITS'], told['edits']),
     trouble: trouble,
   );
 }
@@ -143,6 +155,21 @@ Future<Settings> settingsIn(Map<String, String> environment) async {
 /// The three tiers, applied to one setting.
 Chosen _chosen(String? said, Object? written, String born) =>
     _chosenOrNot(said, written) ?? Chosen(born, Told.byDefault);
+
+/// The three tiers, applied to a setting that is a flag rather than a path —
+/// born knowing `false`. The file tier accepts a real JSON `true`/`false`, a
+/// hand-editor's likelier spelling, alongside the quoted words `_chosenOrNot`
+/// already reads. A value that is neither is not this setting's to hold, so
+/// it counts as unset and the tier beneath stands — unlike a path, where any
+/// written string is a value worth keeping.
+Chosen _chosenFlag(String? said, Object? written) {
+  final fromFile = switch (written) {
+    bool it => it ? 'true' : 'false',
+    'true' || 'false' => written as String,
+    _ => null,
+  };
+  return _chosenOrNot(said, fromFile) ?? const Chosen('false', Told.byDefault);
+}
 
 /// The two tiers that may say nothing at all, applied to one setting.
 Chosen? _chosenOrNot(String? said, Object? written) {
@@ -217,7 +244,7 @@ Future<_Read> _fileIn(Map<String, String> environment) async {
 /// failed. Worth naming; not worth solving for a fault a hand-edited file is
 /// rarely in.
 Future<String?> settingsWrite(
-  Map<String, String?> changes,
+  Map<String, Object?> changes,
   Map<String, String> environment,
 ) async {
   final kept = File(settingsPathIn(environment));

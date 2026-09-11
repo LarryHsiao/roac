@@ -293,6 +293,18 @@
       }
     }
   },
+  "editsLabel": "May write",
+  "@editsLabel": {
+    "description": "Settings panel: editsLabel."
+  },
+  "editsOn": "may edit your notes, and send a handoff",
+  "@editsOn": {
+    "description": "Settings panel: editsOn."
+  },
+  "editsOff": "reads only",
+  "@editsOff": {
+    "description": "Settings panel: editsOff."
+  },
   "updatesLabel": "Updates",
   "@updatesLabel": {
     "description": "Settings panel: updatesLabel."
