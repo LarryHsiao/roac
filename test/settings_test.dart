@@ -153,6 +153,75 @@ void main() {
         expect(actual, expected);
       },
     );
+
+    test('whether he may act, when nothing says so', () async {
+      const expected = (mayAct: false, told: Told.byDefault);
+
+      final settings = await settingsIn(world);
+      final actual = (mayAct: settings.mayAct, told: settings.edits.told);
+
+      expect(actual, expected);
+    });
+
+    test('whether he may act, when the file names a JSON bool', () async {
+      const expected = (mayAct: true, told: Told.file);
+      await write({'edits': true});
+
+      final settings = await settingsIn(world);
+      final actual = (mayAct: settings.mayAct, told: settings.edits.told);
+
+      expect(actual, expected);
+    });
+
+    test('whether he may act, when the file says false in JSON', () async {
+      const expected = (mayAct: false, told: Told.file);
+      await write({'edits': false});
+
+      final settings = await settingsIn(world);
+      final actual = (mayAct: settings.mayAct, told: settings.edits.told);
+
+      expect(actual, expected);
+    });
+
+    test(
+      'whether he may act, when the file spells it as a quoted word',
+      () async {
+        const expected = (onTrue: true, onFalse: false);
+        await write({'edits': 'true'});
+        final onTrue = (await settingsIn(world)).mayAct;
+
+        await write({'edits': 'false'});
+        final onFalse = (await settingsIn(world)).mayAct;
+
+        expect((onTrue: onTrue, onFalse: onFalse), expected);
+      },
+    );
+
+    test(
+      'whether he may act, when the environment overrides the file',
+      () async {
+        const expected = (mayAct: false, told: Told.environment);
+        await write({'edits': true});
+
+        final settings = await settingsIn({...world, 'ROAC_EDITS': 'false'});
+        final actual = (mayAct: settings.mayAct, told: settings.edits.told);
+
+        expect(actual, expected);
+      },
+    );
+
+    test(
+      'a value that is neither true nor false is unset, and the default stands',
+      () async {
+        const expected = (mayAct: false, told: Told.byDefault);
+        await write({'edits': 'sometimes'});
+
+        final settings = await settingsIn(world);
+        final actual = (mayAct: settings.mayAct, told: settings.edits.told);
+
+        expect(actual, expected);
+      },
+    );
   });
 
   group('a settings file that will not do', () {
@@ -285,6 +354,57 @@ void main() {
       );
 
       expect(trouble != null, expected);
+    });
+  });
+
+  group('whether the folders he was told about are still there', () {
+    test('the notes folder, when it is', () async {
+      const expected = false;
+
+      final settings = await settingsIn({...world, 'ROAC_NOTES': kept.path});
+
+      expect(settings.notesMissing, expected);
+    });
+
+    test('the notes folder, when it has been moved or removed', () async {
+      const expected = true;
+
+      final settings = await settingsIn({
+        ...world,
+        'ROAC_NOTES': '${kept.path}/gone',
+      });
+
+      expect(settings.notesMissing, expected);
+    });
+
+    test('a Claude config, when nothing names one', () async {
+      const expected = false;
+
+      final settings = await settingsIn(world);
+
+      expect(settings.claudeConfigMissing, expected);
+    });
+
+    test('a Claude config, when the one named is', () async {
+      const expected = false;
+
+      final settings = await settingsIn({
+        ...world,
+        'ROAC_CLAUDE_CONFIG': kept.path,
+      });
+
+      expect(settings.claudeConfigMissing, expected);
+    });
+
+    test('a Claude config, when the one named has since gone', () async {
+      const expected = true;
+
+      final settings = await settingsIn({
+        ...world,
+        'ROAC_CLAUDE_CONFIG': '${kept.path}/gone',
+      });
+
+      expect(settings.claudeConfigMissing, expected);
     });
   });
 }

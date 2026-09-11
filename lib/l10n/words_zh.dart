@@ -15,6 +15,15 @@ class WordsZh extends Words {
   String get invitation => '問我你寫下的事。';
 
   @override
+  String get notesMissing => '你的筆記資料夾不見了。打開設定（齒輪圖示）重新選一個存在的資料夾。';
+
+  @override
+  String get claudeConfigMissing => '你指定的 Claude 設定資料夾已經不存在了。打開設定重新選擇，或將它清除。';
+
+  @override
+  String get writeHint => '如果這需要改動你的筆記，去設定裡打開「可寫入」。';
+
+  @override
   String get askHint => '問 Roäc…';
 
   @override
@@ -183,6 +192,15 @@ class WordsZh extends Words {
   String settingsUnwritable(String trouble) {
     return 'Roäc 的設定存不了（$trouble）。';
   }
+
+  @override
+  String get editsLabel => '可寫入';
+
+  @override
+  String get editsOn => '可修改筆記，並送出 handoff';
+
+  @override
+  String get editsOff => '僅供閱讀';
 
   @override
   String get updatesLabel => '更新';

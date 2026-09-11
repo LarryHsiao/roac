@@ -118,6 +118,10 @@ typedef CheckForUpdates = Future<void> Function({required bool inBackground});
 /// [Asking].
 typedef UpdateNoteCheck = Future<UpdateNoteState> Function();
 
+/// How what Roäc has been told is read — named so a test may stand in for
+/// the real settings file, in the same shape as [Asking].
+typedef SettingsRead = Future<Settings> Function(Map<String, String>);
+
 /// Where the sprite sits: it walks the window across the desktop, carries the
 /// drag and the pin, and keeps the window's transparent margin click-through.
 class Perch extends StatefulWidget {
@@ -127,6 +131,7 @@ class Perch extends StatefulWidget {
     this.chooseFolder = fromTheFilesystem,
     this.checkForUpdates,
     this.updateNoteCheck,
+    this.readSettings = settingsIn,
     super.key,
   });
 
@@ -153,6 +158,10 @@ class Perch extends StatefulWidget {
   /// real running version; a test stands in its own, in the same shape as
   /// [asking].
   final UpdateNoteCheck? updateNoteCheck;
+
+  /// How what Roäc has been told is read. The real settings file in the app;
+  /// a test stands in its own, in the same shape as [asking].
+  final SettingsRead readSettings;
 
   @override
   State<Perch> createState() => _PerchState();
@@ -233,7 +242,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// needs it — so there is no instant in which a question could be asked
   /// with nowhere to ask it. [_settings] is the same thing once it has
   /// landed, kept for the things that must read it without waiting.
-  late final Future<Settings> _told = settingsIn(widget.environment);
+  late final Future<Settings> _told = widget.readSettings(widget.environment);
   Settings? _settings;
 
   /// The packs found in whatever folder [Settings.packs] currently names —
@@ -380,7 +389,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// Reads what Roäc has been told, afresh — called after a write, since an
   /// environment variable may still outrank what was just written.
   Future<void> _refreshSettings() async {
-    final told = await settingsIn(widget.environment);
+    final told = await widget.readSettings(widget.environment);
     if (!mounted) return;
     setState(() => _settings = told);
   }
@@ -392,7 +401,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// A write that fails is said to the console rather than swallowed — the
   /// same debt the README already names for a pack that will not read: this
   /// app has nowhere else to say it yet.
-  Future<void> _tellSettings(String key, String? value) async {
+  Future<void> _tellSettings(String key, Object? value) async {
     final trouble = await settingsWrite({key: value}, widget.environment);
     if (!mounted) return;
     if (trouble != null) {
@@ -444,6 +453,7 @@ class _PerchState extends State<Perch> with WindowListener {
         resuming: resuming,
         notes: told.notes.value,
         claudeConfig: told.claudeConfig?.value,
+        mayAct: told.mayAct,
       ),
     );
   }
@@ -761,6 +771,7 @@ class _PerchState extends State<Perch> with WindowListener {
       onAsk: _ask,
       onWanting: _grantRoom,
       onSettings: _openSettings,
+      settings: settings,
     );
   }
 

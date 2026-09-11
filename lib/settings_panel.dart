@@ -52,7 +52,7 @@ class SettingsPanel extends StatelessWidget {
 
   /// Told when a setting is changed here: the key that changed, and its new
   /// value — null to let the tier beneath it stand again.
-  final void Function(String key, String? value) onChanged;
+  final void Function(String key, Object? value) onChanged;
 
   final VoidCallback onClose;
 
@@ -151,6 +151,11 @@ class SettingsPanel extends StatelessWidget {
                       );
                       if (path != null) onChanged('claudeConfig', path);
                     },
+                  ),
+                  const SizedBox(height: _padding),
+                  _Flag(
+                    chosen: settings.edits,
+                    onChanged: (value) => onChanged('edits', value),
                   ),
                   const SizedBox(height: _padding),
                   _Updates(onCheck: onCheckForUpdates),
@@ -306,6 +311,51 @@ class _Character extends StatelessWidget {
             style: const TextStyle(color: _faint, fontSize: 10),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// Whether Roäc may change what he reads — off by default, and always a
+/// deliberate choice: what it grants, and why the notes folder bounds it, is
+/// named in the README rather than repeated in a tooltip here.
+class _Flag extends StatelessWidget {
+  const _Flag({required this.chosen, required this.onChanged});
+
+  final Chosen chosen;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final tongue = Words.of(context);
+    final on = chosen.value == 'true';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _FieldLabel(tongue.editsLabel),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Switch(
+              value: on,
+              activeTrackColor: _edge,
+              inactiveTrackColor: _wellEdge,
+              onChanged: onChanged,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                on ? tongue.editsOn : tongue.editsOff,
+                style: const TextStyle(color: _ink, fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(
+          _toldLine(tongue, chosen.told, 'ROAC_EDITS'),
+          style: const TextStyle(color: _faint, fontSize: 10),
+        ),
       ],
     );
   }

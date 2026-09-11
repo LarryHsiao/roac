@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'counsel.dart';
 import 'l10n/words.dart';
 import 'saying.dart';
+import 'settings.dart';
 
 /// How a link is followed — named so a test may stand in for the browser, in
 /// the same shape as the shell and the counsel this app already stands in for.
@@ -36,12 +37,19 @@ class Bubble extends StatelessWidget {
     required this.onAsk,
     required this.onWanting,
     required this.onSettings,
+    this.settings,
     this.opening = launchUrl,
     super.key,
   });
 
   /// What Roäc last said, or null while it has said nothing yet.
   final Counsel? counsel;
+
+  /// What Roäc has been told, so the bubble may say plainly when the notes
+  /// folder or a named Claude config has gone missing, and whether a trouble
+  /// is worth pointing at the write toggle. Null only in a test that has no
+  /// business with either.
+  final Settings? settings;
 
   /// Whether Roäc is presently thinking.
   final bool waiting;
@@ -82,6 +90,7 @@ class Bubble extends StatelessWidget {
               asked: asked,
               opening: opening,
               onWanting: onWanting,
+              settings: settings,
             ),
           ),
           const SizedBox(height: _padding),
@@ -108,6 +117,42 @@ class Bubble extends StatelessWidget {
   }
 }
 
+/// What stands before anything has been asked: the plain invitation, unless
+/// a folder Roäc was told about has gone missing since — the notes folder
+/// first, since nothing can be answered without it, then a named Claude
+/// config, which is optional but wrong if it names nowhere real.
+String _invitation(Words tongue, Settings? settings) => switch (settings) {
+  Settings(notesMissing: true) => tongue.notesMissing,
+  Settings(claudeConfigMissing: true) => tongue.claudeConfigMissing,
+  _ => tongue.invitation,
+};
+
+/// A trouble, in the reader's tongue.
+///
+/// A missing notes folder or Claude config is said plainly as that, in place
+/// of whatever the trouble itself carries — not a guess: a working directory
+/// that does not exist fails the CLI's own launch every time, so a trouble
+/// arriving while either is missing is this, and naming the true cause beats
+/// passing on the `ProcessException` it surfaces as.
+///
+/// Otherwise, a nudge toward the write toggle stands beneath it when Roäc
+/// could not act and that toggle was off — this one genuinely is a guess,
+/// since the CLI's own words are not read to confirm it, only a reminder of
+/// where the door is, offered wherever a question might have wanted it open.
+///
+/// Null [settings] — a question answered before the first read has landed —
+/// leans toward showing the write-toggle hint rather than not: wrongly
+/// withholding it costs a reader the one nudge that might have explained
+/// their trouble, where wrongly showing it costs nothing worse than an
+/// unneeded suggestion.
+String _troubled(Words tongue, Trouble trouble, Settings? settings) {
+  if (settings?.notesMissing ?? false) return tongue.notesMissing;
+  if (settings?.claudeConfigMissing ?? false) return tongue.claudeConfigMissing;
+  final said = saidOfTrouble(tongue, trouble);
+  if (settings?.mayAct ?? false) return said;
+  return '$said\n\n${tongue.writeHint}';
+}
+
 /// What Roäc is saying: nothing yet, thinking, an answer, or a plain trouble.
 ///
 /// An answer scrolls and may be selected rather than being cut, because it
@@ -120,6 +165,7 @@ class _Said extends StatelessWidget {
     required this.asked,
     required this.opening,
     required this.onWanting,
+    required this.settings,
   });
 
   final Counsel? counsel;
@@ -127,6 +173,7 @@ class _Said extends StatelessWidget {
   final String? asked;
   final Opening opening;
   final Wanting onWanting;
+  final Settings? settings;
 
   @override
   Widget build(BuildContext context) {
@@ -145,7 +192,7 @@ class _Said extends StatelessWidget {
           )
         : switch (counsel) {
             null => Text(
-              tongue.invitation,
+              _invitation(tongue, settings),
               style: const TextStyle(color: _faint),
             ),
             Answer(:final words) => _Rendered(
@@ -154,7 +201,7 @@ class _Said extends StatelessWidget {
               onWanting: onWanting,
             ),
             final Trouble trouble => _Plain(
-              words: saidOfTrouble(tongue, trouble),
+              words: _troubled(tongue, trouble, settings),
               colour: _alarm,
             ),
           };

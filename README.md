@@ -36,7 +36,7 @@ per platform, plus the interface they share — not third-party weight.
 
 ## What Roäc has been told
 
-Four settings. **An environment variable wins, then the settings file, then
+Five settings. **An environment variable wins, then the settings file, then
 what he was born knowing.**
 
 | Setting | Variable | File key | Born knowing |
@@ -45,13 +45,14 @@ what he was born knowing.**
 | Where packs are kept | `ROAC_PACKS` | `packs` | `~/Library/Application Support/roac/packs` |
 | Which pack to wear | `ROAC_PACK` | `pack` | the first by name |
 | Which Claude config the CLI should use | `ROAC_CLAUDE_CONFIG` | `claudeConfig` | nothing — the CLI's own default stands |
+| Whether Roäc may change what he reads | `ROAC_EDITS` | `edits` | `false` |
 
-Set none of them and Roäc still works. The first three carry all three tiers;
-the fourth carries only two — there is nothing built in to fall back to, since
-most people run one Claude Code config and have no reason to name another.
-Set, it becomes `CLAUDE_CONFIG_DIR` on the CLI's own process — useful on a
-machine that keeps more than one, such as a `claude-personal` alongside the
-default.
+Set none of them and Roäc still works, and reads only. The first three and
+the last carry all three tiers; `claudeConfig` carries only two — there is
+nothing built in to fall back to, since most people run one Claude Code
+config and have no reason to name another. Set, it becomes `CLAUDE_CONFIG_DIR`
+on the CLI's own process — useful on a machine that keeps more than one, such
+as a `claude-personal` alongside the default.
 
 The file is `config.json`, beside the packs in
 `~/Library/Application Support/roac`, so that everything Roäc owns is in one
@@ -84,7 +85,7 @@ not worth solving for a fault a hand-edited file is rarely in — but real.
 
 A gear beside the ask field, and `⌘,` besides, open a panel in the bubble's
 own place — the mascot keeps its footing below, exactly as it does under the
-bubble. It shows all four settings and where each was told from, in the same
+bubble. It shows all five settings and where each was told from, in the same
 three colours the tiers carry above: green for an environment variable, amber
 for the file, plain for what Roäc was born knowing. The Claude config row has
 no third colour of its own — nothing chosen there shows as the CLI's own
@@ -100,6 +101,65 @@ The window grows to `settingsHeight` (`lib/roaming.dart`) to hold the panel
 without scrolling in the ordinary case; the panel scrolls besides, as the
 safety net for whatever that leaves no room for.
 
+## Letting Roäc act
+
+Roäc reads and answers; he does not, by default, change anything. The CLI is
+launched with `--disallowedTools Edit,MultiEdit,Write,NotebookEdit,Bash`
+(`lib/counsel.dart`) — this flag, not a claim in this file, is what makes
+"Roäc only reads" true, whatever a Claude config directory would otherwise
+allow. A note is not something Roäc trusts by default: it may carry an
+instruction meant for the CLI rather than a fact meant for the reader, and the
+CLI has no way to tell those apart on its own.
+
+The **May write** toggle in the settings panel opens a door beside that
+default, off unless a person turns it on. On, the CLI is run instead with
+`--permission-mode acceptEdits` and a narrow allow-list —
+`Edit,MultiEdit,Write,NotebookEdit`, plus two Bash commands and nothing else.
+`acceptEdits` only auto-accepts a write inside the process's working
+directory, which `askCounsel` already sets to the notes folder — a write
+anywhere else, through `Edit`/`Write`/`NotebookEdit`, falls to a permission
+prompt nothing here can answer, which is a denial. Bash is narrowed to two
+commands rather than closed outright — `printf`, so the `/handoff` skill may
+pipe a body in, and its own hook script. **That narrowing is by command name,
+not by what the command then does**: the notes-folder bound above governs
+the file tools, not Bash — a permission that allows `printf … | hook` allows
+any other `printf` invocation the CLI is asked to run, redirection included.
+The door this toggle opens is real and worth naming honestly rather than
+oversold.
+
+**The `/handoff` half depends on skadi** — a personal Claude Code
+configuration repo the hook script (`hooks/handoff.sh`) and the `/handoff`
+skill live in, installed into `~/.claude` or a named profile such as
+`~/.claude-personal`. Roäc derives the hook's path from
+whichever Claude config directory he was told (`ROAC_CLAUDE_CONFIG` /
+`claudeConfig` above), falling back to `~/.claude` when none was named — the
+same config directory the CLI itself uses, so the skill and the hook it calls
+never disagree. Without that repo installed at the resolved path, the write
+half of the toggle still works; asking Roäc to send a handoff will not, since
+there is nothing at that path to run.
+
+### When a folder has gone missing
+
+A notes folder or a named Claude config is only as good as its being there.
+Before anything has been asked, the bubble checks both: a notes folder that
+does not exist replaces the ordinary invitation with a plain nudge to open
+settings and choose one that does; a named Claude config that has gone
+missing gets the same, once notes are fine. Neither check blocks a question
+put anyway. If one is put regardless, `askCounsel` still tries to launch the
+CLI rooted in the missing folder and fails outright — a working directory
+that does not exist is not something any platform's process launch survives
+— so the trouble that comes back is said the same way, rather than passing
+on the bare `ProcessException` that launch actually threw. This is not a
+guess at the cause the way the write-toggle hint below is: a missing working
+directory fails a process launch every time, so naming it plainly costs
+nothing the raw exception would have been more honest about.
+
+A trouble that comes back while **May write** is off carries one more line:
+a reminder that the toggle exists, in case the question wanted a change. It
+is a nudge, not a diagnosis — Roäc does not read the CLI's own words to guess
+whether a denied write is truly what happened, so the line appears whenever
+he could not act and stood read-only, whatever the trouble actually was.
+
 ## Running
 
 ```sh
@@ -109,7 +169,7 @@ flutter build macos --debug   # or build, then open build/macos/Build/Products/D
 flutter run -d windows        # the same, on Windows
 flutter build windows --debug # then run build\windows\x64\runner\Debug\roac.exe
 
-flutter test                  # 157 tests
+flutter test                  # 208 tests
 flutter analyze
 ```
 

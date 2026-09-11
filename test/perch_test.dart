@@ -6,6 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
 import 'package:roac/counsel.dart';
 import 'package:roac/l10n/words.dart';
+import 'package:roac/settings.dart';
 import 'package:roac/settings_panel.dart';
 import 'package:roac/main.dart';
 import 'package:roac/roaming.dart';
@@ -18,6 +19,18 @@ import 'package:roac/update_note_banner.dart';
 Future<void> _noCheck({required bool inBackground}) async {}
 Future<UpdateNoteState> _noUpdateNote() async =>
     const UpdateNoteState(shouldShow: false, version: '');
+
+/// What Roäc was born knowing for an empty environment, handed back at once
+/// — a stand-in for the real read, which is genuine `dart:io` work a
+/// widget test's fake-async pump never drives to completion on its own.
+/// Ignores the environment it is handed: no test here asks it to honor one.
+Future<Settings> _settledAtOnce(Map<String, String> _) async => const Settings(
+  notes: Chosen('/Minerva', Told.byDefault),
+  packs: Chosen('/Library/Application Support/roac/packs', Told.byDefault),
+  pack: null,
+  claudeConfig: null,
+  edits: Chosen('false', Told.byDefault),
+);
 
 /// A desktop the mascot can stand on, standing in for the two plugins so the
 /// perch itself may be exercised without a window or a screen.
@@ -185,6 +198,7 @@ void main() {
             chooseFolder: chooseFolder,
             checkForUpdates: _noCheck,
             updateNoteCheck: _noUpdateNote,
+            readSettings: _settledAtOnce,
           ),
         ),
       );
@@ -549,6 +563,7 @@ void main() {
             checkForUpdates: ({required inBackground}) async =>
                 calls.add(inBackground),
             updateNoteCheck: _noUpdateNote,
+            readSettings: _settledAtOnce,
           ),
         ),
       );

@@ -14,13 +14,14 @@ void main() {
     ),
     pack: null,
     claudeConfig: null,
+    edits: Chosen('false', Told.byDefault),
   );
 
   Future<void> show(
     WidgetTester tester, {
     Settings settings = plain,
     List<String> installedPacks = const [],
-    void Function(String key, String? value)? onChanged,
+    void Function(String key, Object? value)? onChanged,
     VoidCallback? onClose,
     VoidCallback? onCheckForUpdates,
     ChooseFolder? chooseFolder,
@@ -55,6 +56,7 @@ void main() {
           packs: Chosen('/the/default/packs', Told.byDefault),
           pack: Chosen('crow.zip', Told.environment),
           claudeConfig: Chosen('/Users/someone/.claude-work', Told.environment),
+          edits: Chosen('true', Told.environment),
         ),
         installedPacks: const ['crow.zip', 'magpie.zip'],
       );
@@ -65,7 +67,8 @@ void main() {
           shown('the built-in default') &&
           shown('set by ROAC_PACK') &&
           shown('/Users/someone/.claude-work') &&
-          shown('set by ROAC_CLAUDE_CONFIG');
+          shown('set by ROAC_CLAUDE_CONFIG') &&
+          shown('set by ROAC_EDITS');
 
       expect(actual, expected);
     });
@@ -96,6 +99,7 @@ void main() {
           ),
           pack: null,
           claudeConfig: null,
+          edits: Chosen('false', Told.byDefault),
           trouble: NotJson('unexpected character at line 3'),
         ),
       );
@@ -108,7 +112,7 @@ void main() {
     });
   });
 
-  testWidgets('a fifth row still fits the real window without overflowing it', (
+  testWidgets('a sixth row still fits the real window without overflowing it', (
     tester,
   ) async {
     const expected = true;
@@ -121,9 +125,9 @@ void main() {
             // The window's own real proportions — 420 wide, grown to
             // settingsHeight (lib/roaming.dart) tall — not the test
             // surface's default. A fourth row is exactly what overflowed
-            // this panel once before (now a fifth, with Updates); this is
-            // the case that would catch it again, rather than trusting an
-            // unconstrained test surface.
+            // this panel once before (now a sixth, with the write toggle);
+            // this is the case that would catch it again, rather than
+            // trusting an unconstrained test surface.
             width: speakingSize.width,
             height: settingsHeight,
             child: SettingsPanel(
@@ -142,6 +146,7 @@ void main() {
                   r'\NestedConfigProfiles\claude-personal-work-shared-2026',
                   Told.environment,
                 ),
+                edits: Chosen('true', Told.environment),
               ),
               installedPacks: const ['a-rather-long-character-pack-name.zip'],
               onChanged: (_, _) {},
@@ -173,6 +178,7 @@ void main() {
         ),
         pack: Chosen('gone.zip', Told.file),
         claudeConfig: null,
+        edits: Chosen('false', Told.byDefault),
       ),
       installedPacks: const ['crow.zip'],
     );
@@ -186,7 +192,7 @@ void main() {
   ) async {
     const expected = ('notes', '/a/chosen/folder');
     String? toldKey;
-    String? toldValue;
+    Object? toldValue;
 
     await show(
       tester,
@@ -207,7 +213,7 @@ void main() {
     (tester) async {
       const expected = ('claudeConfig', '/Users/someone/.claude-personal');
       String? toldKey;
-      String? toldValue;
+      Object? toldValue;
 
       await show(
         tester,
@@ -246,7 +252,7 @@ void main() {
   testWidgets('choosing a character tells its file name', (tester) async {
     const expected = ('pack', 'magpie.zip');
     String? toldKey;
-    String? toldValue;
+    Object? toldValue;
 
     await show(
       tester,
@@ -271,6 +277,11 @@ void main() {
     var checked = false;
 
     await show(tester, onCheckForUpdates: () => checked = true);
+    // The row sits below the write toggle now — not yet visible in a test
+    // surface this size until scrolled to, unlike the real window's own
+    // gate on that (see the fifth-row-then-sixth overflow test above).
+    await tester.ensureVisible(find.text('Check now'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Check now'));
 
     expect(checked, expected);
@@ -284,5 +295,52 @@ void main() {
     await tester.tap(find.byIcon(Icons.close));
 
     expect(closed, expected);
+  });
+
+  group('the write toggle', () {
+    testWidgets('off, it says Roäc only reads', (tester) async {
+      const expected = true;
+      await show(tester);
+
+      expect(shown('reads only'), expected);
+    });
+
+    testWidgets('on, it says what it grants', (tester) async {
+      const expected = true;
+      await show(
+        tester,
+        settings: const Settings(
+          notes: Chosen('/Users/someone/Minerva', Told.byDefault),
+          packs: Chosen(
+            '/Users/someone/Library/Application Support/roac/packs',
+            Told.byDefault,
+          ),
+          pack: null,
+          claudeConfig: null,
+          edits: Chosen('true', Told.file),
+        ),
+      );
+
+      expect(shown('may edit your notes, and send a handoff'), expected);
+    });
+
+    testWidgets('flipping it tells the setting a real bool, not a string', (
+      tester,
+    ) async {
+      const expected = ('edits', true);
+      String? toldKey;
+      Object? toldValue;
+
+      await show(
+        tester,
+        onChanged: (key, value) {
+          toldKey = key;
+          toldValue = value;
+        },
+      );
+      await tester.tap(find.byType(Switch));
+
+      expect((toldKey, toldValue), expected);
+    });
   });
 }

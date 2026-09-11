@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
@@ -5,6 +7,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:roac/bubble.dart';
 import 'package:roac/counsel.dart';
 import 'package:roac/l10n/words.dart';
+import 'package:roac/settings.dart';
 
 void main() {
   Future<void> show(
@@ -15,6 +18,7 @@ void main() {
     Opening opening = _nowhere,
     Wanting onWanting = _grantNothing,
     ValueChanged<String> onAsk = _sayNothing,
+    Settings? settings,
   }) => tester.pumpWidget(
     _speaking(
       Bubble(
@@ -25,16 +29,124 @@ void main() {
         onWanting: onWanting,
         onSettings: () {},
         opening: opening,
+        settings: settings,
       ),
     ),
   );
 
   bool shown(String words) => find.text(words).evaluate().isNotEmpty;
 
+  /// What Roäc has been told, with [notes] and [claudeConfig] real folders
+  /// unless told otherwise — [notesMissing]/[claudeConfigMissing] check the
+  /// real filesystem, so a fixture that means to pass either check needs a
+  /// folder that genuinely exists.
+  Settings settingsWith({
+    String? notes,
+    String? claudeConfig,
+    bool mayAct = false,
+  }) => Settings(
+    notes: Chosen(notes ?? Directory.systemTemp.path, Told.byDefault),
+    packs: Chosen(Directory.systemTemp.path, Told.byDefault),
+    pack: null,
+    claudeConfig: claudeConfig == null ? null : Chosen(claudeConfig, Told.file),
+    edits: Chosen(mayAct ? 'true' : 'false', Told.byDefault),
+  );
+
   testWidgets('with nothing said yet it invites a question', (tester) async {
     const expected = true;
 
     await show(tester);
+    final actual = shown('Ask me what you have written down.');
+
+    expect(actual, expected);
+  });
+
+  testWidgets(
+    'a notes folder that has gone missing is said instead of the invitation',
+    (tester) async {
+      const expected = true;
+
+      await show(
+        tester,
+        settings: settingsWith(notes: '${Directory.systemTemp.path}/gone'),
+      );
+      final actual = shown(
+        'Your notes folder is gone. Open settings (the gear) and choose one '
+        'that still exists.',
+      );
+
+      expect(actual, expected);
+    },
+  );
+
+  testWidgets(
+    'a named Claude config that has gone missing is said too, once notes '
+    'are fine',
+    (tester) async {
+      const expected = true;
+
+      await show(
+        tester,
+        settings: settingsWith(
+          claudeConfig: '${Directory.systemTemp.path}/gone',
+        ),
+      );
+      final actual = shown(
+        'The Claude config you named no longer exists. Open settings and '
+        'choose one, or clear it.',
+      );
+
+      expect(actual, expected);
+    },
+  );
+
+  testWidgets('the notes folder wins when both have gone missing', (
+    tester,
+  ) async {
+    const expected = (notesSaid: true, claudeConfigSaid: false);
+
+    await show(
+      tester,
+      settings: settingsWith(
+        notes: '${Directory.systemTemp.path}/gone',
+        claudeConfig: '${Directory.systemTemp.path}/also-gone',
+      ),
+    );
+    final actual = (
+      notesSaid: shown(
+        'Your notes folder is gone. Open settings (the gear) and choose one '
+        'that still exists.',
+      ),
+      claudeConfigSaid: shown(
+        'The Claude config you named no longer exists. Open settings and '
+        'choose one, or clear it.',
+      ),
+    );
+
+    expect(actual, expected);
+  });
+
+  testWidgets(
+    'a question answered before settings have landed invites one as usual',
+    (tester) async {
+      const expected = true;
+
+      await show(tester, settings: null);
+      final actual = shown('Ask me what you have written down.');
+
+      expect(actual, expected);
+    },
+  );
+
+  testWidgets('folders that are both still there invite a question as usual', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(
+      tester,
+      settings: settingsWith(claudeConfig: Directory.systemTemp.path),
+    );
     final actual = shown('Ask me what you have written down.');
 
     expect(actual, expected);
@@ -130,8 +242,123 @@ void main() {
     const complaint = 'claude: command not found';
     const expected = true;
 
-    await show(tester, counsel: const Complaint(complaint));
+    // mayAct: true, so as not to entangle this with the write-toggle hint
+    // below — that is its own concern, tested on its own.
+    await show(
+      tester,
+      counsel: const Complaint(complaint),
+      settings: settingsWith(mayAct: true),
+    );
     final actual = shown(complaint);
+
+    expect(actual, expected);
+  });
+
+  testWidgets(
+    'a trouble is said as a missing notes folder, not the exception it '
+    'actually threw',
+    (tester) async {
+      const expected = (settingsSaid: true, exceptionSaid: false);
+
+      await show(
+        tester,
+        counsel: const Complaint(
+          'ProcessException: The system cannot find the path specified.',
+        ),
+        settings: settingsWith(notes: '${Directory.systemTemp.path}/gone'),
+      );
+      final actual = (
+        settingsSaid: shown(
+          'Your notes folder is gone. Open settings (the gear) and choose '
+          'one that still exists.',
+        ),
+        exceptionSaid: shown(
+          'ProcessException: The system cannot find the path specified.',
+        ),
+      );
+
+      expect(actual, expected);
+    },
+  );
+
+  testWidgets(
+    'a trouble is said as a missing Claude config, once notes are fine',
+    (tester) async {
+      const expected = true;
+
+      await show(
+        tester,
+        counsel: const Complaint('claude: command not found'),
+        settings: settingsWith(
+          claudeConfig: '${Directory.systemTemp.path}/gone',
+        ),
+      );
+      final actual = shown(
+        'The Claude config you named no longer exists. Open settings and '
+        'choose one, or clear it.',
+      );
+
+      expect(actual, expected);
+    },
+  );
+
+  testWidgets('a trouble points at the write toggle when it was off', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(
+      tester,
+      counsel: const Complaint('claude: command not found'),
+      settings: settingsWith(mayAct: false),
+    );
+    final actual = shown(
+      'claude: command not found\n\n'
+      'If this needed a change to your notes, turn on "May write" in '
+      'settings.',
+    );
+
+    expect(actual, expected);
+  });
+
+  testWidgets(
+    'a trouble leans toward the hint too, before settings have landed',
+    (tester) async {
+      const expected = true;
+
+      await show(
+        tester,
+        counsel: const Complaint('claude: command not found'),
+        settings: null,
+      );
+      final actual = shown(
+        'claude: command not found\n\n'
+        'If this needed a change to your notes, turn on "May write" in '
+        'settings.',
+      );
+
+      expect(actual, expected);
+    },
+  );
+
+  testWidgets('a trouble says nothing of the toggle once it is already on', (
+    tester,
+  ) async {
+    const expected = (bare: true, hinted: false);
+
+    await show(
+      tester,
+      counsel: const Complaint('claude: command not found'),
+      settings: settingsWith(mayAct: true),
+    );
+    final actual = (
+      bare: shown('claude: command not found'),
+      hinted: shown(
+        'claude: command not found\n\n'
+        'If this needed a change to your notes, turn on "May write" in '
+        'settings.',
+      ),
+    );
 
     expect(actual, expected);
   });
@@ -193,7 +420,11 @@ void main() {
   ) async {
     const expected = true;
 
-    await show(tester, counsel: const Silence());
+    await show(
+      tester,
+      counsel: const Silence(),
+      settings: settingsWith(mayAct: true),
+    );
     final actual = shown('Roäc fell silent, and was let go.');
 
     expect(actual, expected);
