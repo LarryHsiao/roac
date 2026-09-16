@@ -71,6 +71,8 @@ void main() {
             asked: null,
             onAsk: _asks,
             onWanting: _wants,
+            onResizeBegun: _resizes,
+            onResize: _resizes,
             onSettings: _settled,
           ),
         ),
@@ -90,6 +92,8 @@ void main() {
 
 void _asks(String _) {}
 void _wants(double _) {}
+
+void _resizes() {}
 
 /// A gear that goes nowhere, for the tests that are not about the panel.
 void _settled() {}

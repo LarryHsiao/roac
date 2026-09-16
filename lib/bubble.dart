@@ -18,6 +18,24 @@ typedef Opening = Future<bool> Function(Uri link);
 /// answer whole. Whoever grants it decides how much of that it can spare.
 typedef Wanting = void Function(double more);
 
+/// Told that a drag of the bubble's top edge has moved once more.
+///
+/// Carries no delta of its own: the window this drag reshapes is the very
+/// thing the drag's own coordinates are measured against, so a delta taken
+/// from the gesture's local frame chases a target that moves under it as
+/// fast as it does. What moved is instead read afresh from the screen —
+/// whoever is told this reads the cursor's own position there to find out.
+typedef Resizing = void Function();
+
+/// Told once, where a drag of the bubble's top edge begins — before the
+/// window has moved at all, so what is told may anchor itself to an
+/// undisturbed reading of the screen.
+typedef ResizeBegun = void Function();
+
+/// The grip along the bubble's top edge, so a test may find and drag it
+/// without reaching for the otherwise-private widget that draws it.
+const resizeHandleKey = Key('bubble-resize-handle');
+
 const Color _fill = Color(0xFF2E3440);
 const Color _edge = Color(0xFF88C0D0);
 const Color _ink = Color(0xFFECEFF4);
@@ -28,6 +46,10 @@ const double _cornerRadius = 16;
 const double _edgeWidth = 2;
 const double _padding = 12;
 
+const double _gripWidth = 36;
+const double _gripHeight = 4;
+const double _gripRadius = 2;
+
 /// The speech bubble: what Roäc last said, and the field you ask it through.
 class Bubble extends StatelessWidget {
   const Bubble({
@@ -36,6 +58,8 @@ class Bubble extends StatelessWidget {
     required this.asked,
     required this.onAsk,
     required this.onWanting,
+    required this.onResizeBegun,
+    required this.onResize,
     required this.onSettings,
     this.settings,
     this.opening = launchUrl,
@@ -64,6 +88,14 @@ class Bubble extends StatelessWidget {
   /// Told when the answer has more to show than there is room for.
   final Wanting onWanting;
 
+  /// Told once, where the reader begins dragging the bubble's top edge —
+  /// before the window has moved, so an anchor may be taken undisturbed.
+  final ResizeBegun onResizeBegun;
+
+  /// Told as the reader drags the bubble's top edge, to grow or shrink it
+  /// by hand rather than waiting on an answer to ask for room itself.
+  final Resizing onResize;
+
   /// Told when the gear beside the field is tapped.
   final VoidCallback onSettings;
 
@@ -83,6 +115,7 @@ class Bubble extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          _ResizeHandle(onResizeBegun: onResizeBegun, onResize: onResize),
           Expanded(
             child: _Said(
               counsel: counsel,
@@ -112,6 +145,44 @@ class Bubble extends StatelessWidget {
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// A grip along the bubble's top edge: dragging it up or down grows or
+/// shrinks the bubble by hand, in the direction the drag itself moves.
+///
+/// A thin bar rather than the edge itself, so the reader's eye finds it
+/// before their pointer does — a bare edge invites no drag at all.
+class _ResizeHandle extends StatelessWidget {
+  const _ResizeHandle({required this.onResizeBegun, required this.onResize});
+
+  final ResizeBegun onResizeBegun;
+  final Resizing onResize;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      key: resizeHandleKey,
+      cursor: SystemMouseCursors.resizeUpDown,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onVerticalDragStart: (_) => onResizeBegun(),
+        onVerticalDragUpdate: (_) => onResize(),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: _padding / 2),
+          child: Center(
+            child: Container(
+              width: _gripWidth,
+              height: _gripHeight,
+              decoration: BoxDecoration(
+                color: _faint,
+                borderRadius: BorderRadius.circular(_gripRadius),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

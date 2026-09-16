@@ -201,6 +201,7 @@ class _PerchState extends State<Perch> with WindowListener {
   final _cursor = Latch('following the cursor across the sprite');
   final _room = Latch('making room for the bubble');
   final _growing = Latch('giving the bubble more room');
+  final _dragging = Latch("reading the cursor for a hand-dragged resize");
 
   Timer? _cursorWatch;
   Timer? _strideWatch;
@@ -232,6 +233,12 @@ class _PerchState extends State<Perch> with WindowListener {
   /// The question [_counsel] or [_waiting] answers, so the bubble can show it
   /// beside what came back. Null before the first question of a fresh bubble.
   String? _asked;
+
+  /// Where a hand-drag of the bubble's top edge began: the cursor's own
+  /// unmoving screen position, and the window's height and top at that
+  /// moment — so every later tick of the same drag is measured against a
+  /// point the drag itself never disturbs. Null between drags.
+  ({double cursorY, double height, double top})? _dragAnchor;
 
   /// The character being worn, if a pack was found and could be read.
   Character? _worn;
@@ -639,6 +646,7 @@ class _PerchState extends State<Perch> with WindowListener {
     unawaited(_listening?.cancel());
     _listening = null;
     _conversation = null;
+    _dragAnchor = null;
     setState(() {
       _speaking = false;
       _waiting = false;
@@ -649,6 +657,62 @@ class _PerchState extends State<Perch> with WindowListener {
     await _standAs(const Size(restingSize, restingSize));
     if (_gait != Gait.pinned) _armSpell();
   }
+
+  /// The least tall a hand-dragged bubble may be shrunk to — the size it
+  /// opens at, since anything smaller could no longer show its own field.
+  static final _leastDraggedHeight = speakingSize.height;
+
+  /// Takes an anchor for a hand-drag of the bubble's top edge that is about
+  /// to begin: the cursor's own screen position, read while it is still
+  /// undisturbed by any resize the drag itself will go on to cause.
+  void _beginDraggedResize() => unawaited(
+    _dragging.run(() async {
+      if (!_speaking) return;
+      final cursor = await ScreenRetriever.instance.getCursorScreenPoint();
+      _dragAnchor = (cursorY: cursor.dy, height: _span.height, top: _top);
+    }),
+  );
+
+  /// Grows or shrinks the bubble to meet where the cursor now stands,
+  /// measured against [_dragAnchor] rather than against the window's own
+  /// last-known shape.
+  ///
+  /// A delta taken from the drag gesture's local coordinates would be measured
+  /// against a window this very drag keeps moving — each resize shifts the
+  /// frame the next local delta is read against, so the drag chases a target
+  /// that flees it by exactly as much as it moves. Anchoring to one screen
+  /// reading taken before the first move sidesteps that chase entirely: every
+  /// tick asks the same question — how far has the cursor come from where it
+  /// started? — and answers it against a point that never itself moves.
+  ///
+  /// Keeps the mascot's own corner where it stands, the same anchor
+  /// [_standAs] keeps for a grant of room the answer asked for itself. Never
+  /// taller than the display's own ceiling allows, and never shorter than
+  /// [_leastDraggedHeight]: unlike [_grantRoom], a hand-driven drag may
+  /// shrink the bubble as freely as it grows it.
+  void _draggedResize() => unawaited(
+    _dragging.run(() async {
+      final anchor = _dragAnchor;
+      if (!_speaking || anchor == null) return;
+      final cursor = await ScreenRetriever.instance.getCursorScreenPoint();
+      // The bubble may have shut while that read was in flight — nothing left
+      // to resize, and setState past dispose would only complain of it.
+      if (!mounted || !_speaking) return;
+      final mostRoom = anchor.top + anchor.height - _range.ceiling;
+      final nextHeight = (anchor.height - (cursor.dy - anchor.cursorY))
+          .clamp(_leastDraggedHeight, math.max(_leastDraggedHeight, mostRoom))
+          .toDouble();
+      if (nextHeight == _span.height) return;
+      final nextTop = anchor.top + anchor.height - nextHeight;
+      setState(() {
+        _top = nextTop;
+        _span = Size(_span.width, nextHeight);
+      });
+      await windowManager.setBounds(
+        Rect.fromLTWH(_stance.left, nextTop, _span.width, nextHeight),
+      );
+    }),
+  );
 
   /// Gives the bubble [more] room than it has, so far as the display allows.
   ///
@@ -770,6 +834,8 @@ class _PerchState extends State<Perch> with WindowListener {
       asked: _asked,
       onAsk: _ask,
       onWanting: _grantRoom,
+      onResizeBegun: _beginDraggedResize,
+      onResize: _draggedResize,
       onSettings: _openSettings,
       settings: settings,
     );

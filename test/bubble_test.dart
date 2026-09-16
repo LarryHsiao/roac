@@ -17,6 +17,8 @@ void main() {
     String? asked,
     Opening opening = _nowhere,
     Wanting onWanting = _grantNothing,
+    ResizeBegun onResizeBegun = _resizeNothing,
+    Resizing onResize = _resizeNothing,
     ValueChanged<String> onAsk = _sayNothing,
     Settings? settings,
   }) => tester.pumpWidget(
@@ -27,6 +29,8 @@ void main() {
         asked: asked,
         onAsk: onAsk,
         onWanting: onWanting,
+        onResizeBegun: onResizeBegun,
+        onResize: onResize,
         onSettings: () {},
         opening: opening,
         settings: settings,
@@ -489,6 +493,20 @@ void main() {
     expect(asked.length > first, expected);
   });
 
+  testWidgets('dragging the top edge tells of its start and every move', (
+    tester,
+  ) async {
+    const expected = true;
+    var begun = 0;
+    var moved = 0;
+
+    await show(tester, onResizeBegun: () => begun++, onResize: () => moved++);
+    await tester.pump();
+    await tester.drag(find.byKey(resizeHandleKey), const Offset(0, -40));
+
+    expect(begun == 1 && moved > 0, expected);
+  });
+
   testWidgets('a tapped link is opened, not left to the reader to retype', (
     tester,
   ) async {
@@ -521,6 +539,9 @@ Future<bool> _nowhere(Uri _) async => false;
 
 /// A window that grants no room, for the tests that are not about room.
 void _grantNothing(double _) {}
+
+/// A window that heeds no drag, for the tests that are not about resizing.
+void _resizeNothing() {}
 
 /// Asked of nothing, for the tests that are not about asking.
 void _sayNothing(String _) {}
