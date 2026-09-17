@@ -337,5 +337,14 @@
   "dismissNote": "Dismiss",
   "@dismissNote": {
     "description": "Tooltip on the update-note banner's close button."
+  },
+  "currentVersion": "v{version}",
+  "@currentVersion": {
+    "description": "Settings panel: the version currently running, shown beside the update-check button.",
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
   }
 }

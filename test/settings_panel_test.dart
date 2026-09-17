@@ -25,6 +25,7 @@ void main() {
     VoidCallback? onClose,
     VoidCallback? onCheckForUpdates,
     ChooseFolder? chooseFolder,
+    String? version,
   }) => tester.pumpWidget(
     MaterialApp(
       localizationsDelegates: Words.localizationsDelegates,
@@ -37,6 +38,7 @@ void main() {
           onClose: onClose ?? () {},
           onCheckForUpdates: onCheckForUpdates ?? () {},
           chooseFolder: chooseFolder ?? (from) async => null,
+          version: version,
         ),
       ),
     ),
@@ -285,6 +287,32 @@ void main() {
     await tester.tap(find.text('Check now'));
 
     expect(checked, expected);
+  });
+
+  testWidgets('the running version is shown beside the check button', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(tester, version: '1.0.3');
+    await tester.ensureVisible(find.text('Check now'));
+    await tester.pumpAndSettle();
+    final actual = shown('v1.0.3');
+
+    expect(actual, expected);
+  });
+
+  testWidgets('nothing is shown while the version is still unread', (
+    tester,
+  ) async {
+    const expected = false;
+
+    await show(tester);
+    await tester.ensureVisible(find.text('Check now'));
+    await tester.pumpAndSettle();
+    final actual = find.byKey(currentVersionKey).evaluate().isNotEmpty;
+
+    expect(actual, expected);
   });
 
   testWidgets('the close button is told, not the panel itself', (tester) async {

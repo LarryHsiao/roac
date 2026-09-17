@@ -53,5 +53,6 @@
   "updatesLabel": "更新",
   "checkForUpdates": "立即檢查",
   "updatedTo": "已更新至 v{version}",
-  "dismissNote": "關閉"
+  "dismissNote": "關閉",
+  "currentVersion": "v{version}"
 }

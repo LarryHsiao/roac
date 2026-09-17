@@ -40,6 +40,7 @@ class SettingsPanel extends StatelessWidget {
     required this.onChanged,
     required this.onClose,
     required this.onCheckForUpdates,
+    this.version,
     this.chooseFolder = fromTheFilesystem,
     super.key,
   });
@@ -61,6 +62,10 @@ class SettingsPanel extends StatelessWidget {
   /// found and installed — so nothing here waits on it or shows a result of
   /// its own.
   final VoidCallback onCheckForUpdates;
+
+  /// The version currently running, shown beside the update-check button.
+  /// Null while it is still being read at launch, or if that read failed.
+  final String? version;
 
   final ChooseFolder chooseFolder;
 
@@ -158,7 +163,7 @@ class SettingsPanel extends StatelessWidget {
                     onChanged: (value) => onChanged('edits', value),
                   ),
                   const SizedBox(height: _padding),
-                  _Updates(onCheck: onCheckForUpdates),
+                  _Updates(onCheck: onCheckForUpdates, version: version),
                   if (trouble != null) ...[
                     const SizedBox(height: _padding),
                     _Trouble(text: saidOfMisread(tongue, trouble)),
@@ -361,13 +366,22 @@ class _Flag extends StatelessWidget {
   }
 }
 
+/// The running version, so a test may find it without matching on the
+/// version string itself.
+const currentVersionKey = Key('settings-current-version');
+
 /// A row that asks for a check rather than showing a value — there is
 /// nothing here for Roäc himself to say. Found, current, or unreachable: any
 /// of those is Sparkle/WinSparkle's own dialog to raise, not this row's.
 class _Updates extends StatelessWidget {
-  const _Updates({required this.onCheck});
+  const _Updates({required this.onCheck, this.version});
 
   final VoidCallback onCheck;
+
+  /// The version currently running. Left off when it is empty — the same
+  /// stand-in a test's `updateNoteCheck` seam hands back when it has no
+  /// opinion on versions at all.
+  final String? version;
 
   @override
   Widget build(BuildContext context) {
@@ -377,16 +391,26 @@ class _Updates extends StatelessWidget {
       children: [
         _FieldLabel(tongue.updatesLabel),
         const SizedBox(height: 4),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: OutlinedButton(
-            onPressed: onCheck,
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _ink,
-              side: const BorderSide(color: _wellEdge),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            OutlinedButton(
+              onPressed: onCheck,
+              style: OutlinedButton.styleFrom(
+                foregroundColor: _ink,
+                side: const BorderSide(color: _wellEdge),
+              ),
+              child: Text(tongue.checkForUpdates),
             ),
-            child: Text(tongue.checkForUpdates),
-          ),
+            if (version != null && version!.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Text(
+                tongue.currentVersion(version!),
+                key: currentVersionKey,
+                style: const TextStyle(color: _faint, fontSize: 11),
+              ),
+            ],
+          ],
         ),
       ],
     );

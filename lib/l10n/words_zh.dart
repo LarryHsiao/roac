@@ -215,4 +215,9 @@ class WordsZh extends Words {
 
   @override
   String get dismissNote => '關閉';
+
+  @override
+  String currentVersion(String version) {
+    return 'v$version';
+  }
 }

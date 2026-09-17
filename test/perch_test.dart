@@ -45,6 +45,10 @@ class _Desktop {
   /// Far from the sprite, so the window hands its clicks on by default.
   Offset cursor = const Offset(2000, 2000);
 
+  /// Every value the window was told to set always-on-top to, in order —
+  /// what a manual update check's own pause-and-restore dance leaves behind.
+  final List<bool> alwaysOnTop = [];
+
   static const _display = {
     'id': '1',
     'size': {'width': 1920.0, 'height': 1080.0},
@@ -86,6 +90,9 @@ class _Desktop {
         // to the default, since a test desktop is never full screen.
         case 'isFullScreen':
           return false;
+        case 'setAlwaysOnTop':
+          alwaysOnTop.add((call.arguments as Map)['isAlwaysOnTop'] as bool);
+          return null;
         default:
           return null;
       }
@@ -105,6 +112,18 @@ class _Desktop {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(MethodChannel(channel), reply);
   }
+}
+
+/// Tells every listening window_manager observer — the perch among them —
+/// that the window has regained focus, the same way the native side would
+/// once whatever stole it (Sparkle's own dialog, say) lets go of it again.
+Future<void> _fireWindowFocus() {
+  const channel = MethodChannel('window_manager');
+  final call = const StandardMethodCodec().encodeMethodCall(
+    const MethodCall('onEvent', {'eventName': 'focus'}),
+  );
+  return TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .handlePlatformMessage(channel.name, call, (_) {});
 }
 
 void main() {
@@ -583,6 +602,57 @@ void main() {
 
       expect(calls.last, expected);
     });
+
+    testWidgets(
+      "the silent launch-time background check leaves always-on-top alone",
+      (tester) async {
+        const expected = <bool>[];
+
+        await tester.pumpWidget(
+          _speaking(
+            Perch(checkForUpdates: _noCheck, updateNoteCheck: _noUpdateNote),
+          ),
+        );
+        await settle(tester);
+
+        expect(_Desktop.standing.alwaysOnTop, expected);
+      },
+    );
+
+    testWidgets(
+      'a manual check drops always-on-top, restored once the window is '
+      'focused again',
+      (tester) async {
+        const expectedWhilePending = [false];
+        const expectedOnceFocused = [false, true];
+
+        await tester.pumpWidget(
+          _speaking(
+            Perch(
+              checkForUpdates: _noCheck,
+              updateNoteCheck: _noUpdateNote,
+              readSettings: _settledAtOnce,
+            ),
+          ),
+        );
+        await settle(tester);
+        await tester.tap(find.byType(Sprite));
+        await settle(tester);
+        await tester.tap(find.byIcon(Icons.settings_outlined));
+        await settle(tester);
+        await tester.ensureVisible(find.text('Check now'));
+        await settle(tester);
+        await tester.tap(find.text('Check now'));
+        await settle(tester);
+
+        expect(_Desktop.standing.alwaysOnTop, expectedWhilePending);
+
+        await _fireWindowFocus();
+        await settle(tester);
+
+        expect(_Desktop.standing.alwaysOnTop, expectedOnceFocused);
+      },
+    );
   });
 }
 

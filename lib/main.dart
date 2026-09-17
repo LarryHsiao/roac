@@ -266,6 +266,13 @@ class _PerchState extends State<Perch> with WindowListener {
   /// mascot alone has no chrome to say it in.
   UpdateNoteState? _note;
 
+  /// The version currently running, for the settings panel to show. Read
+  /// alongside the update note — [UpdateNoteState.version] is the running
+  /// version regardless of whether there is a note worth showing — so
+  /// nothing further is asked of prefs or package info to learn it. Null
+  /// until that read lands, or if it failed.
+  String? _version;
+
   /// Every pixel of ground walked since Roäc woke. A packed walk steps by
   /// this rather than by the clock, so the legs keep pace with the body.
   double _walked = 0;
@@ -296,7 +303,11 @@ class _PerchState extends State<Perch> with WindowListener {
   Future<void> _showUpdateNoteIfAny() async {
     try {
       final state = await (widget.updateNoteCheck ?? _realUpdateNoteCheck)();
-      if (state.shouldShow && mounted) setState(() => _note = state);
+      if (!mounted) return;
+      setState(() {
+        _version = state.version;
+        if (state.shouldShow) _note = state;
+      });
     } catch (_) {
       // Best-effort, the same as the check itself: a prefs or package-info
       // read that fails must never stand between the mascot and its window.
@@ -329,6 +340,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// surfacing, on launch or on a manual ask alike — the next check tries
   /// again.
   Future<void> _checkForUpdate({required bool inBackground}) async {
+    if (!inBackground) await _pauseAlwaysOnTopForUpdate();
     try {
       final custom = widget.checkForUpdates;
       if (custom != null) {
@@ -342,6 +354,21 @@ class _PerchState extends State<Perch> with WindowListener {
     }
   }
 
+  /// Whether always-on-top was dropped to clear the way for a manual check's
+  /// native dialog — see [_pauseAlwaysOnTopForUpdate].
+  bool _alwaysOnTopPausedForUpdate = false;
+
+  /// Roäc's window floats above every ordinary one; Sparkle/WinSparkle's own
+  /// "up to date" / "update found" dialog does not, so a manual check would
+  /// otherwise land silently beneath the settings panel it was asked from.
+  /// Dropped here, and restored in [onWindowFocus] — the next honest sign
+  /// that whatever just took the front of the screen has let go of it again,
+  /// rather than a guessed delay standing in for that signal.
+  Future<void> _pauseAlwaysOnTopForUpdate() async {
+    await windowManager.setAlwaysOnTop(false);
+    _alwaysOnTopPausedForUpdate = true;
+  }
+
   @override
   void dispose() {
     _cursorWatch?.cancel();
@@ -349,7 +376,22 @@ class _PerchState extends State<Perch> with WindowListener {
     _spell?.cancel();
     unawaited(_listening?.cancel());
     windowManager.removeListener(this);
+    // The listener above is gone once this returns, so a focus regained
+    // after this point would never reach onWindowFocus to restore what a
+    // manual check paused. Restored here instead, rather than left dropped
+    // for whatever comes next to find the window standing lower than it
+    // should.
+    if (_alwaysOnTopPausedForUpdate) {
+      unawaited(windowManager.setAlwaysOnTop(true));
+    }
     super.dispose();
+  }
+
+  @override
+  void onWindowFocus() {
+    if (!_alwaysOnTopPausedForUpdate) return;
+    _alwaysOnTopPausedForUpdate = false;
+    unawaited(windowManager.setAlwaysOnTop(true));
   }
 
   @override
@@ -825,6 +867,7 @@ class _PerchState extends State<Perch> with WindowListener {
         onClose: _closeSettings,
         onCheckForUpdates: () =>
             unawaited(_checkForUpdate(inBackground: false)),
+        version: _version,
         chooseFolder: widget.chooseFolder,
       );
     }

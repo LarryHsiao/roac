@@ -221,4 +221,9 @@ class WordsEn extends Words {
 
   @override
   String get dismissNote => 'Dismiss';
+
+  @override
+  String currentVersion(String version) {
+    return 'v$version';
+  }
 }

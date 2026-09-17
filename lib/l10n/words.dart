@@ -428,6 +428,12 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'Dismiss'**
   String get dismissNote;
+
+  /// Settings panel: the version currently running, shown beside the update-check button.
+  ///
+  /// In en, this message translates to:
+  /// **'v{version}'**
+  String currentVersion(String version);
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {
