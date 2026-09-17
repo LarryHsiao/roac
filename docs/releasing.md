@@ -14,6 +14,21 @@ hand for a local release — neither takes a CI-only input, and TeamCity's own
 VCS root branch spec and trigger are what restrict it to tag pushes, not
 anything the scripts themselves check.
 
+## Versioning the build number
+
+`pubspec.yaml`'s `+N` build suffix (`FLUTTER_BUILD_NUMBER`) becomes the
+macOS app's `CFBundleVersion` (`macos/Runner/Info.plist`), and Sparkle's
+update check compares that number, not the dotted version string, to decide
+whether a release is newer. It must therefore climb monotonically across
+every release ever shipped — never reset to `+1` on a version bump, however
+natural that looks next to a fresh `major.minor.patch`. A reset silently
+breaks updates for anyone already running a build with a higher number:
+`v1.0.3` and `v1.0.4` both shipped as `+1`, so neither ever looked newer
+than `v1.0.2`'s `+3` (or than each other) to an installed Sparkle client,
+until `appcast.xml`'s `sparkle:version` was hand-corrected past the true
+high-water mark. Windows is unaffected — WinSparkle compares the full
+`major.minor.patch+build` string, which already increases on its own.
+
 ## 0. One-time setup: signing keys
 
 Both platforms need a signing keypair before the first release goes out,
