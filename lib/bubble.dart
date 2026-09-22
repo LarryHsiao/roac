@@ -39,8 +39,12 @@ const resizeHandleKey = Key('bubble-resize-handle');
 const Color _fill = Color(0xFF2E3440);
 const Color _edge = Color(0xFF88C0D0);
 const Color _ink = Color(0xFFECEFF4);
-const Color _faint = Color(0xFF8894A6);
+const Color _faint = Color(0xFFA3ADBF);
 const Color _alarm = Color(0xFFD08770);
+
+/// The size an answer is read at — a step above Flutter's 14, which sets
+/// Chinese glyphs too tight in a bubble this narrow.
+const double _read = 15;
 
 const double _cornerRadius = 16;
 const double _edgeWidth = 2;
@@ -468,12 +472,26 @@ class _RenderedState extends State<_Rendered> {
       padding: EdgeInsets.zero,
       onTapLink: (_, href, _) => unawaited(_open(href)),
       styleSheet: MarkdownStyleSheet(
-        p: const TextStyle(color: _ink, height: 1.4),
-        listBullet: const TextStyle(color: _ink, height: 1.4),
+        p: const TextStyle(color: _ink, fontSize: _read, height: 1.4),
+        listBullet: const TextStyle(color: _ink, fontSize: _read, height: 1.4),
         a: const TextStyle(color: _edge, decoration: TextDecoration.underline),
         code: const TextStyle(color: _edge, fontFamily: 'monospace'),
         codeblockDecoration: const BoxDecoration(color: Color(0xFF3B4252)),
         blockquoteDecoration: const BoxDecoration(color: Color(0xFF3B4252)),
+        // The package's table head names no colour at all, and its body takes
+        // only what the app theme gives, so a table would be drawn in whatever
+        // that falls to; and it splits the width evenly, so a URL beside a
+        // two-letter label breaks mid-word. Ink the cells outright, and let
+        // each column take the width its words need — the table scrolls
+        // sideways when that is more than the bubble has.
+        tableHead: const TextStyle(
+          color: _ink,
+          fontSize: _read,
+          fontWeight: FontWeight.w600,
+        ),
+        tableBody: const TextStyle(color: _ink, fontSize: _read, height: 1.4),
+        tableBorder: TableBorder.all(color: _faint),
+        tableColumnWidth: const IntrinsicColumnWidth(),
       ),
     );
   }

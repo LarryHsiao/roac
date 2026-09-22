@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -236,6 +237,70 @@ void main() {
       rendered: find.byType(Markdown).evaluate().isNotEmpty,
       raw: shown(source),
     );
+
+    expect(actual, expected);
+  });
+
+  testWidgets('a table in an answer is drawn in ink, not the theme\'s black', (
+    tester,
+  ) async {
+    const expected = (headLight: true, bodyLight: true);
+    const table = '| Realm | URL |\n|---|---|\n| CA | https://ca.test |';
+
+    await show(tester, counsel: const Answer(table));
+    final actual = (
+      headLight: _inkOf(tester, 'Realm').computeLuminance() > 0.5,
+      bodyLight: _inkOf(tester, 'CA').computeLuminance() > 0.5,
+    );
+
+    expect(actual, expected);
+  });
+
+  testWidgets('a table\'s columns take the width their words need', (
+    tester,
+  ) async {
+    const expected = true;
+    const table = '| Realm | URL |\n|---|---|\n| CA | https://ca.test |';
+
+    await show(tester, counsel: const Answer(table));
+    final actual =
+        tester.widget<Table>(find.byType(Table)).defaultColumnWidth
+            is IntrinsicColumnWidth;
+
+    expect(actual, expected);
+  });
+
+  testWidgets('the answer\'s prose is set a size up from the default', (
+    tester,
+  ) async {
+    const expected = 15.0;
+
+    await show(tester, counsel: const Answer('a line of the answer'));
+    final actual = tester
+        .widget<Markdown>(find.byType(Markdown))
+        .styleSheet!
+        .p!
+        .fontSize;
+
+    expect(actual, expected);
+  });
+
+  testWidgets('the faint hint still reads against the fill, by WCAG AA', (
+    tester,
+  ) async {
+    const expected = true;
+
+    await show(tester);
+    final hint = tester
+        .widget<TextField>(find.byType(TextField))
+        .decoration!
+        .hintStyle!
+        .color!;
+    final fill =
+        (tester.widget<Container>(find.byType(Container).first).decoration!
+                as BoxDecoration)
+            .color!;
+    final actual = _contrast(hint, fill) >= 4.5;
 
     expect(actual, expected);
   });
@@ -536,6 +601,29 @@ void main() {
 
 /// A browser that opens nothing, for the tests that are not about links.
 Future<bool> _nowhere(Uri _) async => false;
+
+/// The colour [words] are drawn in — the nearest text style the markdown
+/// builder wrapped them in. A style that names no colour is drawn black.
+Color _inkOf(WidgetTester tester, String words) =>
+    tester
+        .widget<DefaultTextStyle>(
+          find
+              .ancestor(
+                of: find.text(words),
+                matching: find.byType(DefaultTextStyle),
+              )
+              .first,
+        )
+        .style
+        .color ??
+    Colors.black;
+
+/// WCAG 2 contrast ratio between two colours, 1 (alike) to 21 (black on white).
+double _contrast(Color a, Color b) {
+  final lighter = max(a.computeLuminance(), b.computeLuminance());
+  final darker = min(a.computeLuminance(), b.computeLuminance());
+  return (lighter + 0.05) / (darker + 0.05);
+}
 
 /// A window that grants no room, for the tests that are not about room.
 void _grantNothing(double _) {}

@@ -94,6 +94,9 @@ class Roac extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      // The bubble is dark; without this, every markdown style the bubble
+      // does not name itself falls to the light theme's near-black text.
+      theme: ThemeData.dark(),
       localizationsDelegates: Words.localizationsDelegates,
       supportedLocales: Words.supportedLocales,
       localeResolutionCallback: tongueFor,
