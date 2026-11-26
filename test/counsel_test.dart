@@ -92,6 +92,73 @@ const _notes = '/somewhere/notes';
 Future<void> _noReap(int _, {required bool onWindows}) async {}
 
 void main() {
+  group('looking for the CLI', () {
+    /// A shell that records what it was asked to run and ends with [ending].
+    Shell recording(List<String> ran, {int ending = 0}) =>
+        (executable, arguments, {workingDirectory, environment}) async {
+          ran.addAll([executable, ...arguments]);
+          return _Claude(ending: ending);
+        };
+
+    test('goes through a login shell where there is one', () async {
+      const expected = ['/bin/zsh', '-lc', 'command -v claude'];
+      final actual = <String>[];
+
+      await cliFound(shell: recording(actual), onWindows: false);
+
+      expect(actual, expected);
+    });
+
+    test('runs the CLI itself on Windows', () async {
+      const expected = ['claude', '--version'];
+      final actual = <String>[];
+
+      await cliFound(shell: recording(actual), onWindows: true);
+
+      expect(actual, expected);
+    });
+
+    test('finds it when the look ends cleanly, and not otherwise', () async {
+      const expected = (clean: true, failed: false);
+
+      final actual = (
+        clean: await cliFound(shell: recording([]), onWindows: false),
+        failed: await cliFound(
+          shell: recording([], ending: 1),
+          onWindows: false,
+        ),
+      );
+
+      expect(actual, expected);
+    });
+
+    test('gives up on a look that never ends, and kills it', () async {
+      const expected = (found: false, killed: true);
+      final hung = _Claude(lingers: true);
+
+      final found = await cliFound(
+        shell: (executable, arguments, {workingDirectory, environment}) async =>
+            hung,
+        onWindows: false,
+        patience: const Duration(milliseconds: 10),
+      );
+
+      expect((found: found, killed: hung.killed), expected);
+    });
+
+    test('does not find what cannot even be started', () async {
+      const expected = false;
+
+      final actual = await cliFound(
+        shell: (executable, arguments, {workingDirectory, environment}) =>
+            throw const ProcessException('claude', []),
+        onWindows: true,
+      );
+
+      expect(actual, expected);
+    });
+  });
+
   Shell shellOf(_Claude claude) =>
       (
         String _,

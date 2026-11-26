@@ -267,6 +267,69 @@ void main() {
     });
   });
 
+  group('where things are on Windows', () {
+    /// A Windows world: no HOME, and the two variables Windows does set.
+    Map<String, String> windows() => {
+      'APPDATA': '${kept.path}/AppData',
+      'USERPROFILE': '${kept.path}/someone',
+    };
+
+    test(
+      'notes under the user profile, packs and file under APPDATA',
+      () async {
+        final expected = (
+          notes: '${kept.path}/someone\\Minerva',
+          packs: '${kept.path}/AppData\\roac\\packs',
+          file: '${kept.path}/AppData\\roac\\config.json',
+        );
+
+        final settings = await settingsIn(windows());
+        final actual = (
+          notes: settings.notes.value,
+          packs: settings.packs.value,
+          file: settingsPathIn(windows()),
+        );
+
+        expect(actual, expected);
+      },
+    );
+
+    test('the new place wins once something stands in it', () async {
+      final world = {...windows(), 'HOME': '${kept.path}/old'};
+      Directory('${kept.path}/old/Minerva/a').createSync(recursive: true);
+      Directory('${kept.path}/someone\\Minerva/a').createSync(recursive: true);
+      final expected = '${kept.path}/someone\\Minerva';
+
+      final actual = (await settingsIn(world)).notes.value;
+
+      expect(actual, expected);
+    });
+
+    test('old notes are still used while the new place is empty', () async {
+      final world = {...windows(), 'HOME': '${kept.path}/old'};
+      Directory('${kept.path}/old/Minerva/a').createSync(recursive: true);
+      Directory('${kept.path}/someone\\Minerva').createSync(recursive: true);
+      final expected = '${kept.path}/old/Minerva';
+
+      final actual = (await settingsIn(world)).notes.value;
+
+      expect(actual, expected);
+    });
+
+    test('what an earlier release wrote under HOME is still used', () async {
+      final world = {...windows(), 'HOME': '${kept.path}/old'};
+      final folder = '${kept.path}/old/Library/Application Support/roac';
+      Directory('$folder/packs/a').createSync(recursive: true);
+      File('$folder/config.json').writeAsStringSync('{}');
+      final expected = (packs: '$folder/packs', file: '$folder/config.json');
+
+      final settings = await settingsIn(world);
+      final actual = (packs: settings.packs.value, file: settingsPathIn(world));
+
+      expect(actual, expected);
+    });
+  });
+
   group('where the settings file is', () {
     test('beside the packs, in the folder macOS keeps them in', () {
       const expected =

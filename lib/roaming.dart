@@ -48,6 +48,10 @@ const Size speakingSize = Size(420, 300);
 /// translated longer than English ever runs.
 const double settingsHeight = 780;
 
+/// How tall the window stands for the first launch's welcome, the resting
+/// mascot's own square included.
+const double welcomeHeight = 484;
+
 /// The most of a display's height the bubble may take, however long the
 /// answer runs. A window taller than the desktop it stands on is squashed by
 /// macOS, and a bird pinned to the ceiling is no use to anybody.

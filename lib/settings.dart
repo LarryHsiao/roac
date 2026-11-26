@@ -123,14 +123,50 @@ final class Settings {
 
 /// Where the settings file is looked for.
 ///
-/// Beside the packs, in the folder macOS keeps an application's own files in,
-/// so that everything Roäc owns is in one place. `ROAC_SETTINGS` names it
-/// elsewhere, for a test or a second Roäc on one machine.
+/// Beside the packs, in the folder the platform keeps an application's own
+/// files in — see [_ownedIn]. `ROAC_SETTINGS` names it elsewhere, for a test
+/// or a second Roäc on one machine.
 String settingsPathIn(Map<String, String> environment) {
   final named = environment['ROAC_SETTINGS'];
   if (named != null && named.trim().isNotEmpty) return named;
-  return '${environment['HOME'] ?? ''}/Library/Application Support/roac/'
-      '$settingsName';
+  return _ownedIn(environment, settingsName);
+}
+
+/// Where Roäc's own [name] is kept.
+///
+/// `APPDATA` is set by Windows and by nothing else here, so its presence is
+/// what tells the two layouts apart. Releases up to 1.0.6 built every path
+/// from `HOME` on both platforms; something a Windows reader already has
+/// there is still used, until something stands in the new place.
+String _ownedIn(Map<String, String> environment, String name) {
+  final old =
+      '${environment['HOME'] ?? ''}/Library/Application Support/roac/$name';
+  final roaming = environment['APPDATA'];
+  if (roaming == null || roaming.isEmpty) return old;
+  final current = '$roaming\\roac\\$name';
+  return !_stands(current) && _stands(old) ? old : current;
+}
+
+/// Whether something worth using is at [path]: a file, or a folder holding
+/// anything — an empty folder must not hide a full one from an earlier
+/// release.
+bool _stands(String path) => switch (FileSystemEntity.typeSync(path)) {
+  FileSystemEntityType.notFound => false,
+  FileSystemEntityType.directory => Directory(path).listSync().isNotEmpty,
+  _ => true,
+};
+
+/// The notes folder Roäc is born knowing: `Minerva` under the user's own
+/// folder, which Windows names `USERPROFILE` and everything else `HOME`. As
+/// with [_ownedIn], a Windows reader's old `HOME`-built folder is still used
+/// while the new place holds nothing.
+String _bornNotes(Map<String, String> environment) {
+  final old = '${environment['HOME'] ?? ''}/Minerva';
+  final profile = environment['USERPROFILE'];
+  final roaming = environment['APPDATA'];
+  if (roaming == null || roaming.isEmpty || profile == null) return old;
+  final current = '$profile\\Minerva';
+  return !_stands(current) && _stands(old) ? old : current;
 }
 
 /// Everything Roäc has been told, read from [environment] and the file it
@@ -148,12 +184,12 @@ Future<Settings> settingsIn(Map<String, String> environment) async {
     notes: _chosen(
       environment['ROAC_NOTES'],
       told['notes'],
-      '${environment['HOME'] ?? ''}/Minerva',
+      _bornNotes(environment),
     ),
     packs: _chosen(
       environment['ROAC_PACKS'],
       told['packs'],
-      '${environment['HOME'] ?? ''}/Library/Application Support/roac/packs',
+      _ownedIn(environment, 'packs'),
     ),
     pack: _chosenOrNot(environment['ROAC_PACK'], told['pack']),
     claudeConfig: _chosenOrNot(

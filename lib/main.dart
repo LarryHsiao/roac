@@ -22,10 +22,15 @@ import 'settings_panel.dart';
 import 'sprite.dart';
 import 'update_note.dart';
 import 'update_note_banner.dart';
+import 'welcome.dart';
+import 'welcome_panel.dart';
 
 /// Where a fresh launch's last-seen-version note is kept, so a launch that
 /// landed on a newer build than the last one seen can say so once.
 const _lastSeenVersionKey = 'last_seen_version';
+
+/// Where it is kept that the welcome is still owed — see [welcomeOwed].
+const _welcomePendingKey = 'welcome_pending';
 
 /// `appcast.xml`, committed at the repo root and served over its raw GitHub
 /// URL — no separate hosting, the same way GitHub already serves the release
@@ -121,6 +126,14 @@ typedef CheckForUpdates = Future<void> Function({required bool inBackground});
 /// [Asking].
 typedef UpdateNoteCheck = Future<UpdateNoteState> Function();
 
+/// Whether this launch owes the welcome — named so a test may stand in for
+/// the real prefs and settings file, in the same shape as [Asking].
+typedef WelcomeCheck = Future<bool> Function();
+
+/// How the welcome is written down as finished — the other half of
+/// [WelcomeCheck].
+typedef WelcomeDone = Future<void> Function();
+
 /// How what Roäc has been told is read — named so a test may stand in for
 /// the real settings file, in the same shape as [Asking].
 typedef SettingsRead = Future<Settings> Function(Map<String, String>);
@@ -135,6 +148,9 @@ class Perch extends StatefulWidget {
     this.checkForUpdates,
     this.updateNoteCheck,
     this.readSettings = settingsIn,
+    this.welcomeCheck,
+    this.welcomeDone,
+    this.findCli = cliFound,
     super.key,
   });
 
@@ -165,6 +181,16 @@ class Perch extends StatefulWidget {
   /// How what Roäc has been told is read. The real settings file in the app;
   /// a test stands in its own, in the same shape as [asking].
   final SettingsRead readSettings;
+
+  /// Whether the welcome is owed. Null in the app, which weighs local prefs
+  /// and the settings file; a test stands in its own.
+  final WelcomeCheck? welcomeCheck;
+
+  /// Writes the welcome down as finished. Null in the app.
+  final WelcomeDone? welcomeDone;
+
+  /// How the welcome looks for the CLI.
+  final Future<bool> Function() findCli;
 
   @override
   State<Perch> createState() => _PerchState();
@@ -263,6 +289,13 @@ class _PerchState extends State<Perch> with WindowListener {
   /// Whether the settings panel stands in the bubble's own place.
   bool _settingsOpen = false;
 
+  /// Whether the welcome stands where the bubble would, until it is finished
+  /// or skipped.
+  bool _welcoming = false;
+
+  /// Weighed once a launch, and awaited by whoever needs the answer.
+  late final Future<bool> _welcomeOwed = _weighWelcome();
+
   /// What to say about a launch that landed on a newer version than the last
   /// one seen — null once said, once there was nothing to say, or once
   /// dismissed. Shown the next time the bubble opens, since the resting
@@ -320,6 +353,9 @@ class _PerchState extends State<Perch> with WindowListener {
   /// The real update-note check: the running version against the last one
   /// local prefs remember, via [updateNoteOnLaunch].
   Future<UpdateNoteState> _realUpdateNoteCheck() async {
+    // The welcome is weighed first: this read goes on to write down the
+    // running version, which is one of the signs the welcome looks for.
+    await _welcomeOwed;
     final info = await PackageInfo.fromPlatform();
     return updateNoteOnLaunch(
       readLastSeenVersion: () async {
@@ -405,6 +441,58 @@ class _PerchState extends State<Perch> with WindowListener {
     unawaited(_readWindowPlacement());
   }
 
+  /// Best-effort like the update note: prefs that will not answer cost the
+  /// reader the welcome, never the mascot.
+  Future<bool> _weighWelcome() async {
+    try {
+      return await (widget.welcomeCheck ?? _realWelcomeCheck)();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> _realWelcomeCheck() async {
+    final prefs = await SharedPreferences.getInstance();
+    return welcomeOwed(
+      pending: prefs.getBool(_welcomePendingKey),
+      lastSeenVersion: prefs.getString(_lastSeenVersionKey),
+      hasSettings: File(settingsPathIn(widget.environment)).existsSync(),
+      writePending: (pending) => prefs.setBool(_welcomePendingKey, pending),
+    );
+  }
+
+  Future<void> _realWelcomeDone() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_welcomePendingKey, false);
+  }
+
+  /// Opens the welcome of its own accord on the launch that owes it.
+  Future<void> _welcomeIfOwed() async {
+    if (!await _welcomeOwed || !mounted) return;
+    setState(() => _welcoming = true);
+    // A bubble opened before the answer landed needs the welcome's room too.
+    if (_speaking) {
+      await _standAs(Size(speakingSize.width, welcomeHeight));
+    } else {
+      await _room.run(_openBubble);
+    }
+  }
+
+  /// Puts the welcome away for good and leaves the ordinary bubble open.
+  Future<void> _finishWelcome() async {
+    setState(() => _welcoming = false);
+    // Written down first, so that quitting during the resize cannot bring a
+    // finished welcome back.
+    try {
+      await (widget.welcomeDone ?? _realWelcomeDone)();
+    } catch (trouble) {
+      FlutterError.reportError(
+        FlutterErrorDetails(exception: trouble, library: 'roac'),
+      );
+    }
+    if (mounted) await _standAs(speakingSize);
+  }
+
   /// Reads where the window stands before the first sample, so that no tick
   /// ever tests the cursor or a step against the placeholder bounds.
   Future<void> _comeAlive() async {
@@ -415,6 +503,7 @@ class _PerchState extends State<Perch> with WindowListener {
     _cursorWatch = Timer.periodic(_cursorInterval, (_) => _followCursor());
     _strideWatch = Timer.periodic(_strideInterval, (_) => _stride());
     _armSpell();
+    await _welcomeIfOwed();
   }
 
   /// Reads what Roäc has been told about the world, before anything is done
@@ -472,7 +561,7 @@ class _PerchState extends State<Perch> with WindowListener {
   /// Opens the settings panel in the bubble's place, once something is known
   /// to show it.
   void _openSettings() {
-    if (_settings == null) return;
+    if (_settings == null || _welcoming) return;
     setState(() => _settingsOpen = true);
     // Never shrinks: a bubble already grown tall for a long answer keeps
     // that room, exactly as _grantRoom itself never gives room back.
@@ -680,7 +769,9 @@ class _PerchState extends State<Perch> with WindowListener {
       _speaking = true;
       if (_gait == Gait.walking) _gait = Gait.idle;
     });
-    await _standAs(speakingSize);
+    await _standAs(
+      _welcoming ? Size(speakingSize.width, welcomeHeight) : speakingSize,
+    );
     if (!mounted) return;
     await windowManager.focus();
   }
@@ -862,6 +953,15 @@ class _PerchState extends State<Perch> with WindowListener {
   /// The settings panel in the bubble's own place, or the bubble itself.
   Widget _bubbleOrSettings() {
     final settings = _settings;
+    if (_welcoming && settings != null) {
+      return WelcomePanel(
+        settings: settings,
+        findCli: widget.findCli,
+        onNotes: (path) => unawaited(_tellSettings('notes', path)),
+        onDone: () => unawaited(_finishWelcome()),
+        chooseFolder: widget.chooseFolder,
+      );
+    }
     if (_settingsOpen && settings != null) {
       return SettingsPanel(
         settings: settings,

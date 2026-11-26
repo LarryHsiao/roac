@@ -434,6 +434,120 @@ abstract class Words {
   /// In en, this message translates to:
   /// **'v{version}'**
   String currentVersion(String version);
+
+  /// Title of the first welcome step.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Roäc'**
+  String get welcomeTitle;
+
+  /// Why the CLI is looked for.
+  ///
+  /// In en, this message translates to:
+  /// **'Roäc answers by running the Claude Code CLI on this machine.'**
+  String get welcomeCli;
+
+  /// Shown while the CLI is looked for.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking for claude…'**
+  String get cliChecking;
+
+  /// The CLI is on the PATH.
+  ///
+  /// In en, this message translates to:
+  /// **'claude was found'**
+  String get cliFound;
+
+  /// Under a found CLI.
+  ///
+  /// In en, this message translates to:
+  /// **'Signing in is not checked here. If you have not, run claude in a terminal.'**
+  String get cliFoundHint;
+
+  /// The CLI is not on the PATH.
+  ///
+  /// In en, this message translates to:
+  /// **'claude was not found'**
+  String get cliNotFound;
+
+  /// Under a missing CLI.
+  ///
+  /// In en, this message translates to:
+  /// **'Install it and make sure it is on your PATH. On macOS, set that in ~/.zprofile, since ~/.zshrc is not read.'**
+  String get cliNotFoundHint;
+
+  /// Title of the notes step.
+  ///
+  /// In en, this message translates to:
+  /// **'Where are your notes?'**
+  String get welcomeNotesTitle;
+
+  /// Asks for the notes folder.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a folder of markdown notes.'**
+  String get welcomeNotes;
+
+  /// The notes folder is there.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder exists.'**
+  String get folderThere;
+
+  /// The notes folder is not there.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder does not exist. Choose another.'**
+  String get folderGone;
+
+  /// Title of the last step.
+  ///
+  /// In en, this message translates to:
+  /// **'All set'**
+  String get welcomeReadyTitle;
+
+  /// Last step.
+  ///
+  /// In en, this message translates to:
+  /// **'Click the raven to ask a question.'**
+  String get welcomeReady;
+
+  /// Last step, smaller.
+  ///
+  /// In en, this message translates to:
+  /// **'The gear holds the character, the Claude config and May write.'**
+  String get welcomeReadyHint;
+
+  /// Leaves the welcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Skip setup'**
+  String get skipWelcome;
+
+  /// Goes forward in the welcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Next'**
+  String get nextStep;
+
+  /// Goes back in the welcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Back'**
+  String get previousStep;
+
+  /// Looks for the CLI once more.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get checkAgain;
+
+  /// Finishes the welcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Start asking'**
+  String get startAsking;
 }
 
 class _WordsDelegate extends LocalizationsDelegate<Words> {

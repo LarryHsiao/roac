@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'counsel.dart';
 import 'l10n/words.dart';
+import 'palette.dart';
 import 'saying.dart';
 import 'settings.dart';
 
@@ -36,11 +37,7 @@ typedef ResizeBegun = void Function();
 /// without reaching for the otherwise-private widget that draws it.
 const resizeHandleKey = Key('bubble-resize-handle');
 
-const Color _fill = Color(0xFF2E3440);
-const Color _edge = Color(0xFF88C0D0);
-const Color _ink = Color(0xFFECEFF4);
 const Color _faint = Color(0xFFA3ADBF);
-const Color _alarm = Color(0xFFD08770);
 
 /// The size an answer is read at — a step above Flutter's 14, which sets
 /// Chinese glyphs too tight in a bubble this narrow.
@@ -112,9 +109,9 @@ class Bubble extends StatelessWidget {
       margin: const EdgeInsets.all(_padding),
       padding: const EdgeInsets.all(_padding),
       decoration: BoxDecoration(
-        color: _fill,
+        color: panelFill,
         borderRadius: BorderRadius.circular(_cornerRadius),
-        border: Border.all(color: _edge, width: _edgeWidth),
+        border: Border.all(color: panelEdge, width: _edgeWidth),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -277,7 +274,7 @@ class _Said extends StatelessWidget {
             ),
             final Trouble trouble => _Plain(
               words: _troubled(tongue, trouble, settings),
-              colour: _alarm,
+              colour: panelAlarm,
             ),
           };
     final asked = this.asked;
@@ -313,7 +310,7 @@ class _Asked extends StatelessWidget {
       padding: const EdgeInsets.only(left: _padding * 2 / 3),
       decoration: const BoxDecoration(
         border: Border(
-          left: BorderSide(color: _edge, width: _edgeWidth),
+          left: BorderSide(color: panelEdge, width: _edgeWidth),
         ),
       ),
       child: Text(
@@ -458,7 +455,7 @@ class _RenderedState extends State<_Rendered> {
         Expanded(child: _answer()),
         if (aside != null) ...[
           const SizedBox(height: 4),
-          Text(aside, style: const TextStyle(color: _alarm)),
+          Text(aside, style: const TextStyle(color: panelAlarm)),
         ],
       ],
     );
@@ -472,10 +469,17 @@ class _RenderedState extends State<_Rendered> {
       padding: EdgeInsets.zero,
       onTapLink: (_, href, _) => unawaited(_open(href)),
       styleSheet: MarkdownStyleSheet(
-        p: const TextStyle(color: _ink, fontSize: _read, height: 1.4),
-        listBullet: const TextStyle(color: _ink, fontSize: _read, height: 1.4),
-        a: const TextStyle(color: _edge, decoration: TextDecoration.underline),
-        code: const TextStyle(color: _edge, fontFamily: 'monospace'),
+        p: const TextStyle(color: panelInk, fontSize: _read, height: 1.4),
+        listBullet: const TextStyle(
+          color: panelInk,
+          fontSize: _read,
+          height: 1.4,
+        ),
+        a: const TextStyle(
+          color: panelEdge,
+          decoration: TextDecoration.underline,
+        ),
+        code: const TextStyle(color: panelEdge, fontFamily: 'monospace'),
         codeblockDecoration: const BoxDecoration(color: Color(0xFF3B4252)),
         blockquoteDecoration: const BoxDecoration(color: Color(0xFF3B4252)),
         // The package's table head names no colour at all, and its body takes
@@ -485,11 +489,15 @@ class _RenderedState extends State<_Rendered> {
         // each column take the width its words need — the table scrolls
         // sideways when that is more than the bubble has.
         tableHead: const TextStyle(
-          color: _ink,
+          color: panelInk,
           fontSize: _read,
           fontWeight: FontWeight.w600,
         ),
-        tableBody: const TextStyle(color: _ink, fontSize: _read, height: 1.4),
+        tableBody: const TextStyle(
+          color: panelInk,
+          fontSize: _read,
+          height: 1.4,
+        ),
         tableBorder: TableBorder.all(color: _faint),
         tableColumnWidth: const IntrinsicColumnWidth(),
       ),
@@ -548,8 +556,8 @@ class _AskingState extends State<_Asking> {
     return TextField(
       controller: _typed,
       autofocus: true,
-      style: const TextStyle(color: _ink),
-      cursorColor: _edge,
+      style: const TextStyle(color: panelInk),
+      cursorColor: panelEdge,
       decoration: InputDecoration(
         isDense: true,
         hintText: Words.of(context).askHint,
@@ -558,7 +566,7 @@ class _AskingState extends State<_Asking> {
           borderSide: BorderSide(color: _faint),
         ),
         focusedBorder: UnderlineInputBorder(
-          borderSide: BorderSide(color: _edge),
+          borderSide: BorderSide(color: panelEdge),
         ),
       ),
       onSubmitted: _submit,

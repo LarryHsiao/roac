@@ -226,4 +226,65 @@ class WordsEn extends Words {
   String currentVersion(String version) {
     return 'v$version';
   }
+
+  @override
+  String get welcomeTitle => 'Welcome to Roäc';
+
+  @override
+  String get welcomeCli =>
+      'Roäc answers by running the Claude Code CLI on this machine.';
+
+  @override
+  String get cliChecking => 'Looking for claude…';
+
+  @override
+  String get cliFound => 'claude was found';
+
+  @override
+  String get cliFoundHint =>
+      'Signing in is not checked here. If you have not, run claude in a terminal.';
+
+  @override
+  String get cliNotFound => 'claude was not found';
+
+  @override
+  String get cliNotFoundHint =>
+      'Install it and make sure it is on your PATH. On macOS, set that in ~/.zprofile, since ~/.zshrc is not read.';
+
+  @override
+  String get welcomeNotesTitle => 'Where are your notes?';
+
+  @override
+  String get welcomeNotes => 'Choose a folder of markdown notes.';
+
+  @override
+  String get folderThere => 'This folder exists.';
+
+  @override
+  String get folderGone => 'This folder does not exist. Choose another.';
+
+  @override
+  String get welcomeReadyTitle => 'All set';
+
+  @override
+  String get welcomeReady => 'Click the raven to ask a question.';
+
+  @override
+  String get welcomeReadyHint =>
+      'The gear holds the character, the Claude config and May write.';
+
+  @override
+  String get skipWelcome => 'Skip setup';
+
+  @override
+  String get nextStep => 'Next';
+
+  @override
+  String get previousStep => 'Back';
+
+  @override
+  String get checkAgain => 'Check again';
+
+  @override
+  String get startAsking => 'Start asking';
 }

@@ -297,6 +297,33 @@ String _handoffHookFor(String? claudeConfig) {
   return '${claudeConfig ?? '$home/.claude'}/hooks/handoff.sh';
 }
 
+/// How long a look for the CLI may take: a login shell reads a profile first.
+const _looking = Duration(seconds: 10);
+
+/// Whether the CLI can be found the way [askCounsel] would reach it: through
+/// a login shell, or on Windows straight off the PATH. Nothing is asked of
+/// it, so being signed in is not weighed.
+Future<bool> cliFound({
+  Shell shell = Process.start,
+  bool? onWindows,
+  Duration patience = _looking,
+}) async {
+  final windows = onWindows ?? Platform.isWindows;
+  Process? looking;
+  try {
+    looking = windows
+        ? await shell(_cli, ['--version'])
+        : await shell('/bin/zsh', ['-lc', 'command -v $_cli']);
+    // Drained so that a talkative profile cannot fill a pipe and stall it.
+    unawaited(looking.stdout.drain<void>());
+    unawaited(looking.stderr.drain<void>());
+    return await looking.exitCode.timeout(patience) == 0;
+  } catch (_) {
+    looking?.kill();
+    return false;
+  }
+}
+
 /// How [question] is put on this machine, carrying [resuming] where a
 /// conversation is being taken up again, and open to change what it reads —
 /// bounded to [notes] and to the `/handoff` mailbox at [hook] — wherever

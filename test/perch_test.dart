@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:roac/bubble.dart';
 import 'package:roac/counsel.dart';
 import 'package:roac/l10n/words.dart';
@@ -13,6 +15,7 @@ import 'package:roac/roaming.dart';
 import 'package:roac/sprite.dart';
 import 'package:roac/update_note.dart';
 import 'package:roac/update_note_banner.dart';
+import 'package:roac/welcome_panel.dart';
 
 /// Neither of these ever reaches a real plugin channel: no test here cares
 /// about updates, so both stand in as plain no-ops.
@@ -127,7 +130,12 @@ Future<void> _fireWindowFocus() {
 }
 
 void main() {
-  setUp(() => _Desktop.standing = _Desktop()..stand());
+  setUp(() {
+    _Desktop.standing = _Desktop()..stand();
+    // Prefs mocks outlive a test; a welcome already finished is what every
+    // test but the welcome's own expects to find.
+    SharedPreferences.setMockInitialValues({'welcome_pending': false});
+  });
 
   /// Lets the frames the perch schedules come through. The sprite's animation
   /// never stops, so `pumpAndSettle` would wait for a rest that never comes.
@@ -544,6 +552,124 @@ void main() {
       await tester.tap(find.byIcon(Icons.close));
       await settle(tester);
       final actual = find.byType(UpdateNoteBanner).evaluate().isNotEmpty;
+
+      expect(actual, expected);
+    });
+  });
+
+  group('the welcome', () {
+    Future<void> raiseOwed(
+      WidgetTester tester, {
+      bool owed = true,
+      WelcomeDone? done,
+    }) async {
+      await tester.pumpWidget(
+        _speaking(
+          Perch(
+            checkForUpdates: _noCheck,
+            updateNoteCheck: _noUpdateNote,
+            readSettings: _settledAtOnce,
+            welcomeCheck: () async => owed,
+            welcomeDone: done ?? () async {},
+            findCli: () async => true,
+          ),
+        ),
+      );
+      await settle(tester);
+    }
+
+    testWidgets('opens of its own accord when owed', (tester) async {
+      const expected = (panels: 1, height: welcomeHeight);
+
+      await raiseOwed(tester);
+      final actual = (
+        panels: find.byType(WelcomePanel).evaluate().length,
+        height: _Desktop.standing.bounds.height,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('stays away when not owed', (tester) async {
+      const expected = 0;
+
+      await raiseOwed(tester, owed: false);
+
+      expect(find.byType(WelcomePanel).evaluate().length, expected);
+    });
+
+    testWidgets('skipping it is written down and leaves the bubble', (
+      tester,
+    ) async {
+      const expected = (written: 1, panels: 0, bubbles: 1);
+      var written = 0;
+      await raiseOwed(tester, done: () async => written++);
+
+      await tester.tap(find.text('Skip setup'));
+      await settle(tester);
+      final actual = (
+        written: written,
+        panels: find.byType(WelcomePanel).evaluate().length,
+        bubbles: find.byType(Bubble).evaluate().length,
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('escape shuts a welcome that opened itself', (tester) async {
+      const expected = 0;
+      await raiseOwed(tester);
+
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await settle(tester);
+
+      expect(find.byType(WelcomePanel).evaluate().length, expected);
+    });
+
+    testWidgets('a fresh install is weighed from real prefs', (tester) async {
+      const expected = (panels: 1, pending: true);
+      SharedPreferences.setMockInitialValues({});
+      PackageInfo.setMockInitialValues(
+        appName: 'roac',
+        packageName: 'roac',
+        version: '9.9.9',
+        buildNumber: '1',
+        buildSignature: '',
+      );
+
+      await tester.pumpWidget(
+        _speaking(
+          Perch(
+            environment: const {'ROAC_SETTINGS': '/no/such/config.json'},
+            checkForUpdates: _noCheck,
+            readSettings: _settledAtOnce,
+            findCli: () async => true,
+          ),
+        ),
+      );
+      await settle(tester);
+      final prefs = await SharedPreferences.getInstance();
+      final actual = (
+        panels: find.byType(WelcomePanel).evaluate().length,
+        pending: prefs.getBool('welcome_pending'),
+      );
+
+      expect(actual, expected);
+    });
+
+    testWidgets('shutting the bubble does not finish it', (tester) async {
+      const expected = (written: 0, panels: 1);
+      var written = 0;
+      await raiseOwed(tester, done: () async => written++);
+
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      await tester.tap(find.byType(Sprite));
+      await settle(tester);
+      final actual = (
+        written: written,
+        panels: find.byType(WelcomePanel).evaluate().length,
+      );
 
       expect(actual, expected);
     });

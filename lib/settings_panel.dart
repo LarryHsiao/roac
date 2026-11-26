@@ -2,20 +2,9 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import 'l10n/words.dart';
+import 'palette.dart';
 import 'saying.dart';
 import 'settings.dart';
-
-// Mirrors bubble.dart's palette — the panel stands in the bubble's own place
-// while it is open, and must wear the same chrome. Kept apart rather than
-// shared, since neither file is more than one recurrence of the other; a
-// third surface wanting this look would be the moment to lift it.
-const Color _fill = Color(0xFF2E3440);
-const Color _edge = Color(0xFF88C0D0);
-const Color _ink = Color(0xFFECEFF4);
-const Color _faint = Color(0xFF8894A6);
-const Color _alarm = Color(0xFFD08770);
-const Color _well = Color(0xFF1A1E29);
-const Color _wellEdge = Color(0xFF3A4256);
 
 const double _cornerRadius = 16;
 const double _edgeWidth = 2;
@@ -77,9 +66,9 @@ class SettingsPanel extends StatelessWidget {
       margin: const EdgeInsets.all(_padding),
       padding: const EdgeInsets.all(_padding),
       decoration: BoxDecoration(
-        color: _fill,
+        color: panelFill,
         borderRadius: BorderRadius.circular(_cornerRadius),
-        border: Border.all(color: _edge, width: _edgeWidth),
+        border: Border.all(color: panelEdge, width: _edgeWidth),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,7 +79,7 @@ class SettingsPanel extends StatelessWidget {
                 child: Text(
                   tongue.settingsTitle,
                   style: const TextStyle(
-                    color: _ink,
+                    color: panelInk,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -101,7 +90,7 @@ class SettingsPanel extends StatelessWidget {
                 // Escape and the settings shortcut have nothing to bubble
                 // up from, and neither closes the panel they are meant to.
                 autofocus: true,
-                icon: const Icon(Icons.close, color: _faint, size: 18),
+                icon: const Icon(Icons.close, color: panelFaint, size: 18),
                 tooltip: tongue.closeSettings,
                 onPressed: onClose,
                 padding: EdgeInsets.zero,
@@ -233,8 +222,8 @@ class _Folder extends StatelessWidget {
             OutlinedButton(
               onPressed: onChoose,
               style: OutlinedButton.styleFrom(
-                foregroundColor: _ink,
-                side: const BorderSide(color: _wellEdge),
+                foregroundColor: panelInk,
+                side: const BorderSide(color: panelWellEdge),
               ),
               child: Text(Words.of(context).choose),
             ),
@@ -244,7 +233,7 @@ class _Folder extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             _toldLine(Words.of(context), chosen!.told, variable),
-            style: const TextStyle(color: _faint, fontSize: 10),
+            style: const TextStyle(color: panelFaint, fontSize: 10),
           ),
         ],
       ],
@@ -282,10 +271,10 @@ class _Character extends StatelessWidget {
             child: DropdownButton<String?>(
               value: worn,
               isExpanded: true,
-              dropdownColor: _well,
-              icon: const Icon(Icons.arrow_drop_down, color: _faint),
+              dropdownColor: panelWell,
+              icon: const Icon(Icons.arrow_drop_down, color: panelFaint),
               style: const TextStyle(
-                color: _ink,
+                color: panelInk,
                 fontSize: 12,
                 fontFamily: 'monospace',
               ),
@@ -313,7 +302,7 @@ class _Character extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             _toldLine(tongue, chosen!.told, 'ROAC_PACK'),
-            style: const TextStyle(color: _faint, fontSize: 10),
+            style: const TextStyle(color: panelFaint, fontSize: 10),
           ),
         ],
       ],
@@ -343,15 +332,15 @@ class _Flag extends StatelessWidget {
           children: [
             Switch(
               value: on,
-              activeTrackColor: _edge,
-              inactiveTrackColor: _wellEdge,
+              activeTrackColor: panelEdge,
+              inactiveTrackColor: panelWellEdge,
               onChanged: onChanged,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 on ? tongue.editsOn : tongue.editsOff,
-                style: const TextStyle(color: _ink, fontSize: 12),
+                style: const TextStyle(color: panelInk, fontSize: 12),
               ),
             ),
           ],
@@ -359,7 +348,7 @@ class _Flag extends StatelessWidget {
         const SizedBox(height: 2),
         Text(
           _toldLine(tongue, chosen.told, 'ROAC_EDITS'),
-          style: const TextStyle(color: _faint, fontSize: 10),
+          style: const TextStyle(color: panelFaint, fontSize: 10),
         ),
       ],
     );
@@ -397,8 +386,8 @@ class _Updates extends StatelessWidget {
             OutlinedButton(
               onPressed: onCheck,
               style: OutlinedButton.styleFrom(
-                foregroundColor: _ink,
-                side: const BorderSide(color: _wellEdge),
+                foregroundColor: panelInk,
+                side: const BorderSide(color: panelWellEdge),
               ),
               child: Text(tongue.checkForUpdates),
             ),
@@ -407,7 +396,7 @@ class _Updates extends StatelessWidget {
               Text(
                 tongue.currentVersion(version!),
                 key: currentVersionKey,
-                style: const TextStyle(color: _faint, fontSize: 11),
+                style: const TextStyle(color: panelFaint, fontSize: 11),
               ),
             ],
           ],
@@ -427,7 +416,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) => Text(
     text.toUpperCase(),
     style: const TextStyle(
-      color: _faint,
+      color: panelFaint,
       fontSize: 11,
       letterSpacing: 0.4,
       fontWeight: FontWeight.w600,
@@ -445,13 +434,13 @@ class _Well extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
     decoration: BoxDecoration(
-      color: _well,
+      color: panelWell,
       borderRadius: BorderRadius.circular(6),
-      border: Border.all(color: _wellEdge),
+      border: Border.all(color: panelWellEdge),
     ),
     child: DefaultTextStyle.merge(
       style: const TextStyle(
-        color: _ink,
+        color: panelInk,
         fontSize: 12,
         fontFamily: 'monospace',
       ),
@@ -475,6 +464,6 @@ class _Trouble extends StatelessWidget {
       border: Border.all(color: const Color(0xFF5A4A2A)),
       borderRadius: BorderRadius.circular(6),
     ),
-    child: Text(text, style: const TextStyle(color: _alarm, height: 1.4)),
+    child: Text(text, style: const TextStyle(color: panelAlarm, height: 1.4)),
   );
 }

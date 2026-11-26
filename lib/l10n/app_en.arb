@@ -346,5 +346,81 @@
         "type": "String"
       }
     }
+  },
+  "welcomeTitle": "Welcome to Roäc",
+  "@welcomeTitle": {
+    "description": "Title of the first welcome step."
+  },
+  "welcomeCli": "Roäc answers by running the Claude Code CLI on this machine.",
+  "@welcomeCli": {
+    "description": "Why the CLI is looked for."
+  },
+  "cliChecking": "Looking for claude…",
+  "@cliChecking": {
+    "description": "Shown while the CLI is looked for."
+  },
+  "cliFound": "claude was found",
+  "@cliFound": {
+    "description": "The CLI is on the PATH."
+  },
+  "cliFoundHint": "Signing in is not checked here. If you have not, run claude in a terminal.",
+  "@cliFoundHint": {
+    "description": "Under a found CLI."
+  },
+  "cliNotFound": "claude was not found",
+  "@cliNotFound": {
+    "description": "The CLI is not on the PATH."
+  },
+  "cliNotFoundHint": "Install it and make sure it is on your PATH. On macOS, set that in ~/.zprofile, since ~/.zshrc is not read.",
+  "@cliNotFoundHint": {
+    "description": "Under a missing CLI."
+  },
+  "welcomeNotesTitle": "Where are your notes?",
+  "@welcomeNotesTitle": {
+    "description": "Title of the notes step."
+  },
+  "welcomeNotes": "Choose a folder of markdown notes.",
+  "@welcomeNotes": {
+    "description": "Asks for the notes folder."
+  },
+  "folderThere": "This folder exists.",
+  "@folderThere": {
+    "description": "The notes folder is there."
+  },
+  "folderGone": "This folder does not exist. Choose another.",
+  "@folderGone": {
+    "description": "The notes folder is not there."
+  },
+  "welcomeReadyTitle": "All set",
+  "@welcomeReadyTitle": {
+    "description": "Title of the last step."
+  },
+  "welcomeReady": "Click the raven to ask a question.",
+  "@welcomeReady": {
+    "description": "Last step."
+  },
+  "welcomeReadyHint": "The gear holds the character, the Claude config and May write.",
+  "@welcomeReadyHint": {
+    "description": "Last step, smaller."
+  },
+  "skipWelcome": "Skip setup",
+  "@skipWelcome": {
+    "description": "Leaves the welcome."
+  },
+  "nextStep": "Next",
+  "@nextStep": {
+    "description": "Goes forward in the welcome."
+  },
+  "previousStep": "Back",
+  "@previousStep": {
+    "description": "Goes back in the welcome."
+  },
+  "checkAgain": "Check again",
+  "@checkAgain": {
+    "description": "Looks for the CLI once more."
+  },
+  "startAsking": "Start asking",
+  "@startAsking": {
+    "description": "Finishes the welcome."
   }
 }

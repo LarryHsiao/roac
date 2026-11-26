@@ -9,6 +9,8 @@ uploaded — the CLI reads the files on this machine, under your own credentials
 
 Named for the raven of Erebor, son of Carc, who bore tidings to Thorin.
 
+Just installed him? See [first-run setup](docs/setup.md) (繁體中文).
+
 ## Requirements
 
 | | |
@@ -46,6 +48,15 @@ what he was born knowing.**
 | Which pack to wear | `ROAC_PACK` | `pack` | the first by name |
 | Which Claude config the CLI should use | `ROAC_CLAUDE_CONFIG` | `claudeConfig` | nothing — the CLI's own default stands |
 | Whether Roäc may change what he reads | `ROAC_EDITS` | `edits` | `false` |
+
+The paths in that table are macOS's. On Windows he is born knowing
+`%USERPROFILE%\Minerva` and `%APPDATA%\roac\packs`, and keeps `config.json`
+in `%APPDATA%\roac`. Releases up to 1.0.6 built these from `HOME`; a file or
+folder already there is still used while the new place is empty.
+
+A fresh install opens a three-step welcome (`lib/welcome_panel.dart`): find the
+CLI, name the notes, begin. It is not shown to anyone who ran an earlier
+release or already has a settings file.
 
 Set none of them and Roäc still works, and reads only. The first three and
 the last carry all three tiers; `claudeConfig` carries only two — there is
@@ -169,7 +180,7 @@ flutter build macos --debug   # or build, then open build/macos/Build/Products/D
 flutter run -d windows        # the same, on Windows
 flutter build windows --debug # then run build\windows\x64\runner\Debug\roac.exe
 
-flutter test                  # 208 tests
+flutter test                  # 248 tests
 flutter analyze
 ```
 
@@ -206,6 +217,9 @@ to accessory — that part lives in the package, not in this tree.
 | `lib/bubble.dart` | The speech bubble: what Roäc last said, and the field you ask it through |
 | `lib/settings.dart` | What Roäc has been told: the three tiers, the settings file, why it could not be read, and how it is written |
 | `lib/settings_panel.dart` | The settings panel: showing what Roäc has been told, and choosing something else |
+| `lib/welcome.dart` | Whether a launch owes the first-run welcome |
+| `lib/welcome_panel.dart` | The welcome's three steps |
+| `lib/palette.dart` | The colours the bubble and its panels share |
 | `lib/saying.dart` | The one place a named cause becomes a sentence. Everything else names what went wrong and carries the values |
 | `lib/l10n/` | The words Roäc speaks. `app_en.arb` and `app_zh.arb` are written by hand; `words*.dart` beside them are generated from those and committed, so a fresh clone analyses and tests without a generation step |
 | `lib/counsel.dart` | The subprocess. Starts the CLI, reads its streamed JSON a line at a time, yields the answer as it grows, carries the conversation's name for a follow-up, and kills it the moment nobody is listening |
@@ -366,13 +380,6 @@ buys elsewhere. This is not an oversight waiting to be tidied into a shell.
 On both, the question, the directory and the session travel as **arguments**,
 never spliced into a command string, so nothing a question contains can change
 what runs.
-
-**`lib/settings.dart` does not yet know Windows either.** Its defaults —
-`~/Minerva`, the packs folder, and `config.json` itself — are all built from
-`HOME`, which Windows does not set; nothing there falls back to `USERPROFILE`
-or `APPDATA` yet. `summonsFor` reaches Windows correctly once it is *given* a
-notes folder, but nothing today points it at one there without `ROAC_NOTES`
-set by hand.
 
 **`CLAUDE_CONFIG_DIR` is set on the CLI's own process, never Roäc's.**
 `askCounsel` passes it through `Process.start`'s `environment` argument on the

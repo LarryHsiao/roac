@@ -220,4 +220,62 @@ class WordsZh extends Words {
   String currentVersion(String version) {
     return 'v$version';
   }
+
+  @override
+  String get welcomeTitle => '歡迎使用 Roäc';
+
+  @override
+  String get welcomeCli => 'Roäc 用本機的 Claude Code CLI 回答問題。';
+
+  @override
+  String get cliChecking => '正在尋找 claude…';
+
+  @override
+  String get cliFound => '已找到 claude';
+
+  @override
+  String get cliFoundHint => '登入狀態不在此檢查。尚未登入請在終端機執行 claude。';
+
+  @override
+  String get cliNotFound => '找不到 claude';
+
+  @override
+  String get cliNotFoundHint =>
+      '安裝後確認它在 PATH 上。macOS 請把 PATH 設定寫在 ~/.zprofile，~/.zshrc 不會被讀取。';
+
+  @override
+  String get welcomeNotesTitle => '你的筆記在哪？';
+
+  @override
+  String get welcomeNotes => '選一個放 markdown 筆記的資料夾。';
+
+  @override
+  String get folderThere => '資料夾存在。';
+
+  @override
+  String get folderGone => '這個資料夾不存在，請另選一個。';
+
+  @override
+  String get welcomeReadyTitle => '都準備好了';
+
+  @override
+  String get welcomeReady => '點渡鴉就能提問。';
+
+  @override
+  String get welcomeReadyHint => '齒輪圖示可以調整角色、Claude 設定與「可寫入」。';
+
+  @override
+  String get skipWelcome => '略過引導';
+
+  @override
+  String get nextStep => '下一步';
+
+  @override
+  String get previousStep => '上一步';
+
+  @override
+  String get checkAgain => '重新檢查';
+
+  @override
+  String get startAsking => '開始提問';
 }
