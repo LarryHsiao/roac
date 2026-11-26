@@ -7,6 +7,28 @@ reconstruct their history.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and
 version numbers follow the `major.minor.patch` scheme named in `pubspec.yaml`.
 
+## 1.0.7
+
+### Added
+
+- A fresh install opens a three-step welcome: find the `claude` CLI, choose
+  the notes folder, begin. It can be skipped, and is not shown to anyone who
+  ran an earlier release.
+- A first-run setup guide in Traditional Chinese, `docs/setup.md`.
+
+### Fixed
+
+- On Windows the default notes folder, packs folder and settings file are now
+  found under the user's own folders (`%USERPROFILE%` and `%APPDATA%`).
+  What an earlier release wrote elsewhere is still used while the new place
+  is empty.
+
+## 1.0.6
+
+### Added
+
+- A TARS companion pack, `packs/tars-robot.zip`.
+
 ## 1.0.5
 
 ### Fixed
