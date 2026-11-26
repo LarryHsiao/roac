@@ -268,8 +268,11 @@ void main() {
   });
 
   group('where things are on Windows', () {
-    /// A Windows world: no HOME, and the two variables Windows does set.
+    /// A Windows world: the two variables Windows sets, and a HOME holding
+    /// nothing. Without one the old place is the drive's own root, where a
+    /// machine that ran an earlier release really does keep a settings file.
     Map<String, String> windows() => {
+      'HOME': '${kept.path}/nobody',
       'APPDATA': '${kept.path}/AppData',
       'USERPROFILE': '${kept.path}/someone',
     };
@@ -292,6 +295,25 @@ void main() {
 
         expect(actual, expected);
       },
+    );
+
+    test(
+      'a folder that will not be listed is kept, not thrown over',
+      () async {
+        final world = windows();
+        final shut = '${kept.path}/someone\\Minerva';
+        Directory(shut).createSync(recursive: true);
+        Directory('${kept.path}/nobody/Minerva/a').createSync(recursive: true);
+        await Process.run('chmod', ['000', shut]);
+        addTearDown(() => Process.run('chmod', ['700', shut]));
+        final expected = shut;
+
+        final actual = (await settingsIn(world)).notes.value;
+
+        expect(actual, expected);
+      },
+      // Taking a folder's permissions away needs chmod.
+      skip: Platform.isWindows,
     );
 
     test('the new place wins once something stands in it', () async {

@@ -152,9 +152,20 @@ String _ownedIn(Map<String, String> environment, String name) {
 /// release.
 bool _stands(String path) => switch (FileSystemEntity.typeSync(path)) {
   FileSystemEntityType.notFound => false,
-  FileSystemEntityType.directory => Directory(path).listSync().isNotEmpty,
+  FileSystemEntityType.directory => _holdsAnything(Directory(path)),
   _ => true,
 };
+
+/// A folder that will not be listed counts as holding something: it is there,
+/// and what it holds is no reason to look elsewhere — nor to throw, since
+/// nothing in the reading of settings may.
+bool _holdsAnything(Directory folder) {
+  try {
+    return folder.listSync().isNotEmpty;
+  } on FileSystemException {
+    return true;
+  }
+}
 
 /// The notes folder Roäc is born knowing: `Minerva` under the user's own
 /// folder, which Windows names `USERPROFILE` and everything else `HOME`. As
