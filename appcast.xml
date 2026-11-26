@@ -5,16 +5,16 @@
         <description>Roäc release feed</description>
         <language>en</language>
         <item>
-            <title>Version 1.0.5</title>
-            <pubDate>Tue, 22 Sep 2026 07:19:43 +0000</pubDate>
-            <enclosure url="https://github.com/LarryHsiao/roac/releases/download/v1.0.5/roac-setup-1.0.5.exe" sparkle:dsaSignature="MDwCHC6XobuRZfb0M/N/Vae2bd9mYtFM12QcugkFW1ECHFaFFb6RIK8O5yIrevBgbG2TJMr1tsAScTHBRNw=" sparkle:version="1.0.5+5" sparkle:os="windows" length="11384311" type="application/octet-stream" />
-        </item>
-        <item>
             <title>Version 1.0.7</title>
             <sparkle:version>7</sparkle:version>
             <sparkle:shortVersionString>1.0.7</sparkle:shortVersionString>
             <pubDate>Thu, 26 Nov 2026 06:31:55 +0000</pubDate>
             <enclosure url="https://github.com/LarryHsiao/roac/releases/download/v1.0.7/roac.dmg" sparkle:edSignature="DrciPLBv4CeT+b8FGl1S0+X39yeeWXIPhT0nlXon8574WZA95YDo5Kjytdzmz1XT61tv3cGyFa12EEtA5RhrAA==" sparkle:os="macos" length="22235919" type="application/octet-stream" />
+        </item>
+        <item>
+            <title>Version 1.0.8</title>
+            <pubDate>Thu, 26 Nov 2026 07:00:16 +0000</pubDate>
+            <enclosure url="https://github.com/LarryHsiao/roac/releases/download/v1.0.8/roac-setup-1.0.8.exe" sparkle:dsaSignature="MDwCHHsDBz9pNR9jR5OvbcyDj7tYnt01n+50wCNCu0MCHHomrv48zuNdBC54aeUcKOEALzT6bXdJB2lo36s=" sparkle:version="1.0.8+8" sparkle:os="windows" length="11397636" type="application/octet-stream" />
         </item>
     </channel>
 </rss>
