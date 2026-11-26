@@ -7,6 +7,16 @@ reconstruct their history.
 The format follows [Keep a Changelog](https://keepachangelog.com/), and
 version numbers follow the `major.minor.patch` scheme named in `pubspec.yaml`.
 
+## 1.0.8
+
+### Fixed
+
+- On Windows, a notes or packs folder that cannot be listed no longer stops
+  Roäc from reading his settings.
+
+Windows receives the changes listed under 1.0.7 with this release; 1.0.7
+was published for macOS only.
+
 ## 1.0.7
 
 ### Added

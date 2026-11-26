@@ -180,7 +180,7 @@ flutter build macos --debug   # or build, then open build/macos/Build/Products/D
 flutter run -d windows        # the same, on Windows
 flutter build windows --debug # then run build\windows\x64\runner\Debug\roac.exe
 
-flutter test                  # 248 tests
+flutter test                  # 249 tests
 flutter analyze
 ```
 
